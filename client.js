@@ -77,6 +77,10 @@ window.__ModuleLoader__.load({
 .basr-toolbar{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.8}
 .basr-pre{flex:1;min-height:0;overflow:auto;margin:0;padding:12px;border-radius:10px;background:rgba(127,127,127,.08);font:12px/1.7 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 .basr-err{color:#e5534b}
+.basr-entry{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:1;cursor:pointer;text-align:left;opacity:.9}
+.basr-entry:hover{background:var(--dsw-alias-bg-secondary,rgba(127,127,127,.14));opacity:1}
+.basr-entry.rail{width:36px;height:36px;justify-content:center;padding:0}
+.basr-entry svg{flex:none;opacity:.85}
 `;
 
     let cssInstalled = false;
@@ -259,7 +263,7 @@ window.__ModuleLoader__.load({
         const wide = !!(ownerProps && ownerProps.wide);
         return h('button', {
           type: 'button',
-          className: 'basr-btn' + (wide ? '' : ' basr-rail'),
+          className: 'basr-entry' + (wide ? ' wide' : ' rail'),
           title: label(), 'aria-label': label(), onClick: openPanel,
         }, h(EntryIcon), wide ? h('span', null, label()) : null);
       };
