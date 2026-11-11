@@ -110,6 +110,7 @@ function pump() {
 }
 
 function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
+  try { mkdirSync(dataDir, { recursive: true }); } catch { /* 目录建不出来就交给子进程报错 */ }
   const child = spawn(process.execPath, [scriptPath, ...args], {
     cwd: dataDir,
     env: childEnv(config, dataDir),
@@ -137,6 +138,10 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
       if (j.stage === 'done' && j.out) { job.state = 'done'; job.doc = j.out; }
       if (j.stage === 'setup-done') job.state = 'done';
       if (j.stage === 'setup-failed') job.state = 'failed';
+      if (j.stage === 'error') {
+        job.error = { code: j.code || 'UNKNOWN', message: j.message || '', hint: j.hint || '' };
+        job.stage = '失败';
+      }
     } catch { /* python 的 stage 行不是 JSON，忽略 */ }
   };
   let buf = '';
@@ -153,8 +158,11 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
     settled = true;
     if (buf.trim()) onLine(buf);
     job.exitCode = code;
-    if (err) { job.state = 'failed'; job.error = err; }
+    if (err) { job.state = 'failed'; job.error = { code: 'SPAWN_FAILED', message: err, hint: '子进程没起来：检查 Node 与插件目录权限。' }; }
     else if (job.state !== 'done' && job.state !== 'canceled') job.state = code === 0 ? 'done' : 'failed';
+    if (job.state === 'failed' && !job.error) {
+      job.error = { code: 'EXIT_' + code, message: '子进程退出码 ' + code, hint: '看 bili_asr_status 的 log 最后几行定位；缺环境会显示 SETUP_REQUIRED。' };
+    }
     job.endedAt = Date.now();
     running = null;
     persist(outDir);
@@ -212,6 +220,7 @@ function statusOf(id) {
   if (!id) {
     return [...jobs.values()].slice(-10).reverse().map((j) => ({
       id: j.id, kind: j.kind, bv: j.bv, title: j.title, state: j.state,
+      errorCode: j.error ? j.error.code : undefined,
       seconds: secondsOf(j),
       position: j.state === 'queued' ? queue.findIndex((q) => q.job.id === j.id) + 1 : 0,
       progressText: j.state === 'running' && j.stage
@@ -235,6 +244,7 @@ function statusOf(id) {
     out.progressText = job.total ? `${job.stage} ${job.done}/${job.total}` : `${job.stage}…`;
   }
   if (job.note) out.note = job.note;
+  if (job.error) { out.error = job.error; out.hint = job.error.hint; }
   if (job.canceledAt) out.canceledAt = new Date(job.canceledAt).toISOString();
   if (job.state === 'done' && job.doc && existsSync(job.doc)) out.docChars = readFileSync(job.doc, 'utf8').length;
   if (job.exitCode !== undefined && job.state !== 'done') out.exitCode = job.exitCode;
@@ -255,6 +265,9 @@ function docOf(id, offset = 0, limit = 6000) {
   if (job.state === 'running') {
     const p2 = job.total ? `${job.done}/${job.total}` : '';
     return { state: 'running', text: `正在${job.stage || '处理'}${p2 ? '（' + p2 + '）' : ''}，完成后这里会显示文档`, hint: '还在跑，先用 bili_asr_status 看进度' };
+  }
+  if (job.state === 'failed' && job.error) {
+    return { state: 'failed', text: `失败：${job.error.message}\n\n怎么办：${job.error.hint}\n\n（错误码 ${job.error.code}）` };
   }
   if (!job.doc || !existsSync(job.doc)) return { state: job.state, error: '没有文档: ' + (job.doc || '(setup 任务)') };
   const text = readFileSync(job.doc, 'utf8');

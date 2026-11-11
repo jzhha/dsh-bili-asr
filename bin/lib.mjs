@@ -26,6 +26,21 @@ export const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 export const headers = (bv) => ({ 'user-agent': UA, referer: `https://www.bilibili.com/video/${bv}/` });
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 统一的结构化失败：把"是什么错 + 该怎么办"打给宿主，然后退出 */
+export function die(code, message, hint) {
+  console.log(JSON.stringify({ stage: 'error', code, message, hint: hint || '' }));
+  process.exit(2);
+}
+
+/** B站接口错误码 → 可操作提示 */
+export function apiHint(code, message) {
+  if (code === -412) return { code: 'RATE_LIMITED', hint: '被 B 站风控了（412）。等 5~10 分钟再试；频繁触发时设 BILI_SESSDATA 或换网络出口。' };
+  if (code === -404) return { code: 'VIDEO_NOT_FOUND', hint: '视频不存在或已删除，确认 BV 号/链接。' };
+  if (code === 62002 || code === 62004) return { code: 'VIDEO_UNAVAILABLE', hint: '视频不可见（私密/审核中/地区限制），换个视频试试。' };
+  if (code === -1) return { code: 'NETWORK', hint: '请求没发出去或超时：检查网络/DNS，或在设置里换代理。' };
+  return { code: 'API_FAILED', hint: 'B 站接口返回了意料之外的错误码，可带上这段 message 开 issue。' };
+}
 export const log = (obj) => console.log(JSON.stringify(obj));
 
 /** outRoot 为空时用 <HOME>/works；跨工作区调用时传 --out 指到当前工作区内 */

@@ -17,6 +17,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **平台字幕优先**：每个分 P / 剧情节点先查 `/x/player/v2`，有字幕轨就直接取正文字幕，不再下音轨、不跑 ASR；匿名拿不到字幕时保持原样回落本地转写。文档会标注每段文字来源（平台字幕 N 段 / 本地 ASR M 段）。
 - 面板工具条加「取消任务」按钮（仅对运行中/排队中的任务可用）。
 - 状态输出带上 `canceledAt`；`bili_asr_doc` 对被取消的任务给出说明而不是报错。
+- **失败可诊断**：所有失败都带 `code` + `message` + `hint`（如 `SETUP_REQUIRED` / `RATE_LIMITED` / `AUDIO_FAILED`），`bili_asr_status` 和面板直接显示「怎么办」；文档接口把错误当正文返回。
+
+### Fixed
+- `dataDir` 还不存在时 spawn 子进程会 `ENOENT`（首次安装、还没跑 setup 就会撞上），现在先建目录。
 
 ## [0.3.1] - 2026-11-11
 

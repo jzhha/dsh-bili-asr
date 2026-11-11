@@ -10,7 +10,7 @@
 import { spawn } from 'node:child_process';
 import { writeFileSync, readFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { BIN, MODEL, PYTHON, WORKS, workDir, log, parseBvid, getJson, sleep } from './lib.mjs';
+import { BIN, MODEL, PYTHON, WORKS, workDir, log, parseBvid, getJson, sleep, die, apiHint } from './lib.mjs';
 import { probeSubtitle, fetchSubtitle } from './subtitle.mjs';
 import { isInteractive, graphVersion, crawl, renderTree } from './stein.mjs';
 import { downloadAudio } from './audio.mjs';
@@ -38,7 +38,10 @@ log({ stage: 'start', bv, dir });
 
 // 1) 基本信息
 const view = await getJson(`https://api.bilibili.com/x/web-interface/view?bvid=${bv}`, bv);
-if (view.code !== 0) throw new Error(`取视频信息失败: ${view.code} ${view.message}`);
+if (view.code !== 0) {
+  const h = apiHint(view.code, view.message);
+  die(h.code, `取视频信息失败：${view.code} ${view.message || ''}`.trim(), h.hint);
+}
 const title = view.data.title;
 const interactive = isInteractive(view);
 log({ stage: 'view', title, interactive, duration: view.data.duration, pages: view.data.pages.length });
@@ -49,7 +52,7 @@ let graph = null;
 if (interactive) {
   // 2) 互动视频：抓剧情树
   const gv = await graphVersion(bv, view.data.cid);
-  if (!gv) throw new Error('互动视频没有取到 graph_version');
+  if (!gv) die('GRAPH_UNAVAILABLE', '这是互动视频，但没取到 graph_version', '可能视频刚改过或接口变了；先用 --no-asr 看结构，再开 issue 附上 BV 号。');
   log({ stage: 'graph_version', graphVersion: gv });
   graph = await crawl(bv, gv);
   writeFileSync(join(dir, 'graph.json'), JSON.stringify({ bv, gv, ...graph }, null, 2), 'utf8');
@@ -63,6 +66,7 @@ if (interactive) {
   cids = pages.map((p) => ({ cid: p.cid, label: `P${p.page} ${p.part}` }));
 }
 
+if (!cids.length) die('NO_PARTS', '没有可处理的分P/节点', '确认视频不是纯互动入口或已下架；可加 --pages 指定。');
 log({ stage: 'targets', count: cids.length });
 
 // 3) 平台字幕优先：能拿到字幕的分P/节点直接落 transcripts，不占 CPU
@@ -95,16 +99,27 @@ if (!noAsr) {
 }
 
 // 4) 没字幕的才下音轨 + 本地转写
-if (pending.length) await downloadAudio(bv, pending, join(dir, 'audio'));
+if (pending.length) {
+  let report = [];
+  try {
+    report = await downloadAudio(bv, pending, join(dir, 'audio'));
+  } catch (e) {
+    die(e.code || 'AUDIO_FAILED', e.message || String(e), e.hint || '音轨下载失败；换条视频或稍后重试。');
+  }
+  const okCount = report.filter((r) => r.state === 'ok' || r.state === 'cached').length;
+  if (report.length && okCount === 0) {
+    die('AUDIO_FAILED', '所有分P的音轨都没拿到', '可能是会员/地区限制或 CDN 拒绝；带 --no-asr 只抓结构，或换网络再试。');
+  }
+}
 
 if (!noAsr && pending.length) {
-  if (!existsSync(PYTHON)) throw new Error(`没找到 Python 环境：${PYTHON}\n先跑 node bin/setup.mjs（或插件里的 bili_asr_setup 工具）`);
-  if (!existsSync(join(MODEL, 'model.bin'))) throw new Error(`没找到 Whisper 模型：${MODEL}\n先跑 node bin/setup.mjs`);
+  if (!existsSync(PYTHON)) die('SETUP_REQUIRED', `没找到 Python 环境：${PYTHON}`, '先跑 bili_asr_setup（或 node bin/setup.mjs）装环境。');
+  if (!existsSync(join(MODEL, 'model.bin'))) die('SETUP_REQUIRED', `没找到 Whisper 模型：${MODEL}`, '模型没下全：重新跑一次 bili_asr_setup，它会校验 sha256 并续传。');
   await new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [join(BIN, 'transcribe.py'), MODEL, join(dir, 'audio'), tdir], {
       stdio: 'inherit',
     });
-    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('transcribe.py exit ' + code))));
+    child.on('exit', (code) => (code === 0 ? resolve() : reject(Object.assign(new Error('transcribe.py 退出码 ' + code), { code: 'TRANSCRIBE_FAILED' }))));
     child.on('error', reject);
   });
 }

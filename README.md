@@ -107,6 +107,21 @@ transcripts/    逐段转写 JSON（带起止时间）
 
 > 这些是本机数字，CPU 型号不同会差不少。任务已改成串行排队，实际耗时基本按「音频总长 × 0.4~0.6」估算。
 
+## 出错了怎么办
+
+失败时任务会带一个错误码，面板和 `bili_asr_status` 都直接给出处置建议：
+
+| 错误码 | 含义 | 怎么办 |
+|---|---|---|
+| `SETUP_REQUIRED` | 没有 venv 或模型 | 跑一次 `bili_asr_setup` |
+| `RATE_LIMITED` | 被 B 站风控（412） | 等 5~10 分钟；频繁触发就设 `BILI_SESSDATA` 或换网络 |
+| `AUDIO_FAILED` | 音轨全部拿不到 | 会员/地区限制或 CDN 拒绝；可先 `--no-asr` 只抓结构 |
+| `VIDEO_NOT_FOUND` / `VIDEO_UNAVAILABLE` | 视频不存在/不可见 | 换视频，或确认链接 |
+| `NO_PARTS` | 没有可处理的分P | 加 `--pages` 明确指定 |
+| `GRAPH_UNAVAILABLE` | 互动视频没取到 graph_version | 先 `--no-asr` 看结构，附 BV 号开 issue |
+| `TRANSCRIBE_FAILED` | python 转写进程失败 | 重跑 `setup`；看 `bili_asr_status` 的 log |
+| `NETWORK` / `EXIT_n` | 网络或未知退出 | 按 hint 处理，带 log 开 issue |
+
 ## 踩过的坑（写进代码里了，改代码前先看一眼）
 
 - **huggingface.co 直连超时**：模型默认走 `hf-mirror.com`；486 MB 的大文件必须支持断点续传（HTTP Range），否则一定断在半路。

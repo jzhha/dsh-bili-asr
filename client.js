@@ -200,7 +200,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'basr-name' }, (j.title || j.bv) + ''),
                 h('span', { className: 'basr-row' },
                   h('span', null, j.bv),
-                  h('span', null, stateText(j.state) + (j.state === 'queued' && j.position ? ' · 第' + j.position + '位' : '') + (j.progressText ? ' · ' + j.progressText : '') + (j.seconds ? ' · ' + j.seconds + 's' : ''))
+                  h('span', null, stateText(j.state) + (j.state === 'failed' && j.errorCode ? ' · ' + j.errorCode : '') + (j.state === 'queued' && j.position ? ' · 第' + j.position + '位' : '') + (j.progressText ? ' · ' + j.progressText : '') + (j.seconds ? ' · ' + j.seconds + 's' : ''))
                 )
               ))
           ),

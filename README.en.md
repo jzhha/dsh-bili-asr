@@ -105,6 +105,20 @@ Edit the plugin `config` in your profile (reload afterwards):
 
 Numbers vary with your CPU. With the serial queue, estimate **audio length × 0.4–0.6**.
 
+## When it fails
+
+Every failure carries a `code`, a `message` and a `hint`; the panel and `bili_asr_status` show them directly.
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `SETUP_REQUIRED` | venv or model missing | run `bili_asr_setup` once |
+| `RATE_LIMITED` | Bilibili rate limit (412) | wait 5–10 min; set `BILI_SESSDATA` or change network |
+| `AUDIO_FAILED` | no audio track obtained | membership/region limit; try `--no-asr` for structure only |
+| `VIDEO_NOT_FOUND` / `VIDEO_UNAVAILABLE` | video missing/private | check the link |
+| `NO_PARTS` | nothing to process | pass `--pages` |
+| `GRAPH_UNAVAILABLE` | interactive graph_version failed | run with `--no-asr`, file an issue with the BV |
+| `TRANSCRIBE_FAILED` | python step failed | re-run setup, read the job log |
+
 ## Pitfalls (already handled in code — read before changing it)
 
 - **`huggingface.co` times out from mainland China** — model downloads default to `hf-mirror.com`, and 486 MB transfers need resumable HTTP Range requests.

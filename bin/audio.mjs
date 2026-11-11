@@ -21,6 +21,7 @@ export async function downloadAudio(bv, cids, audioDir) {
       continue;
     }
     const j = await getJson(`https://api.bilibili.com/x/player/playurl?bvid=${bv}&cid=${cid}&fnval=16&fourk=1`, bv);
+    if (j.code === -412) { const e = new Error('RATE_LIMITED'); e.code = 'RATE_LIMITED'; e.hint = '拿音轨时被风控（412），等几分钟再试，或带 BILI_SESSDATA。'; throw e; }
     if (j.code !== 0 || !j.data?.dash?.audio?.length) {
       report.push({ cid, label, state: 'no-audio', message: j.message });
       await sleep(300);
