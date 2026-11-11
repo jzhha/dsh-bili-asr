@@ -57,7 +57,7 @@ window.__ModuleLoader__.load({
     };
 
     const CSS = `
-.basr-root{display:flex;flex-direction:column;gap:14px;height:100%;min-height:0;padding:18px 20px;font-size:13px}
+.basr-root{display:flex;flex-direction:column;gap:12px;min-height:320px;padding:0;font-size:13px}
 .basr-head{display:flex;flex-direction:column;gap:4px}
 .basr-title{font-size:16px;font-weight:600}
 .basr-sub{opacity:.62;font-size:12px;line-height:1.5}
@@ -66,7 +66,7 @@ window.__ModuleLoader__.load({
 .basr-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--dsw-alias-border,rgba(127,127,127,.28));background:var(--dsw-alias-bg-secondary,rgba(127,127,127,.10));color:inherit;cursor:pointer;font:inherit}
 .basr-btn:hover{background:rgba(127,127,127,.18)}
 .basr-btn[disabled]{opacity:.45;cursor:default}
-.basr-body{display:flex;gap:14px;flex:1;min-height:0}
+.basr-body{display:flex;gap:14px;min-height:260px}
 .basr-list{width:300px;flex:none;overflow:auto;display:flex;flex-direction:column;gap:6px}
 .basr-item{padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;background:rgba(127,127,127,.07)}
 .basr-item:hover{background:rgba(127,127,127,.14)}
@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
 .basr-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
 .basr-doc{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .basr-toolbar{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.8}
-.basr-pre{flex:1;min-height:0;overflow:auto;margin:0;padding:12px;border-radius:10px;background:rgba(127,127,127,.08);font:12px/1.7 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.basr-pre{flex:1;min-height:180px;max-height:420px;overflow:auto;margin:0;padding:12px;border-radius:10px;background:rgba(127,127,127,.08);font:12px/1.7 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 .basr-err{color:#e5534b}
 .basr-entry{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:1;cursor:pointer;text-align:left;opacity:.9}
 .basr-entry:hover{background:var(--dsw-alias-bg-secondary,rgba(127,127,127,.14));opacity:1}
@@ -248,39 +248,17 @@ window.__ModuleLoader__.load({
       }
       const label = () => { try { return t('nav'); } catch { return 'B站转写'; } };
 
-      let layout;
+      // 入口挂在「设置」里（与 dsh-bili-scroll 一致）：slots 取法两种都试，取不到就放弃注册
+      const slots = (typeof ctx.get === 'function' ? ctx.get('slots') : undefined) || ctx.slots;
+      if (!slots) return;
       try {
-        ctx.inject(['layout'], (scoped) => { layout = scoped.layout; });
+        slots.inject('settings.section', () => slots.register(
+          { name: 'settings.section', id: PANEL_ID, order: 40, label: label() },
+          () => h(BiliAsrPanel, { ctx, t }),
+        ));
       } catch (err) {
-        console.error('[dsh-bili-asr] layout inject failed', err);
+        console.error('[dsh-bili-asr] settings.section registration failed', err);
       }
-      const openPanel = () => {
-        try { if (layout && typeof layout.selectPanel === 'function') layout.selectPanel(PANEL_ID); }
-        catch (err) { console.error('[dsh-bili-asr] cannot open panel', err); }
-      };
-
-      const FooterEntry = (ownerProps) => {
-        const wide = !!(ownerProps && ownerProps.wide);
-        return h('button', {
-          type: 'button',
-          className: 'basr-entry' + (wide ? ' wide' : ' rail'),
-          title: label(), 'aria-label': label(), onClick: openPanel,
-        }, h(EntryIcon), wide ? h('span', null, label()) : null);
-      };
-
-      ctx.slots.inject('sidebar.footer.action', () =>
-        ctx.slots.register(
-          { name: 'sidebar.footer.action', id: PANEL_ID, order: 11, locale: NS, label },
-          FooterEntry
-        )
-      );
-
-      ctx.slots.inject('main', () =>
-        ctx.slots.register(
-          { name: 'main', key: PANEL_ID, locale: NS, inject: () => ({ ctx, t }) },
-          BiliAsrPanel
-        )
-      );
     }
 
     return { inject: ['slots', 'locale'], apply };

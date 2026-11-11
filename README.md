@@ -6,7 +6,7 @@
 - **普通视频 / 分P** → 逐段台词（带起止时间）
 - **互动视频**（`is_stein_gate=1`）→ 抓 B 站 stein 剧情图，输出**分支树 + 每个节点的台词 + 结局台词**
 - **有字幕轨就直接用**：每个分 P / 节点先查 `/x/player/v2`，拿到平台字幕就跳过音轨下载与 ASR（匿名多数拿不到，可设 `BILI_SESSDATA` 补一段 cookie）
-- **两端**：会话里可以调工具；侧栏有「B站转写」面板，能起任务、看进度、读文档
+- **两端**：会话里可以调工具；**设置 → 「B站转写」** 里有一个面板，能起任务、看进度、读文档
 
 ## 为什么需要它
 
@@ -23,7 +23,7 @@ dsh plugin --profile desktop add dsh-bili-asr
 dsh plugin --profile desktop add https://github.com/jzhha/dsh-bili-asr/releases/download/v0.3.0/dsh-bili-asr-0.3.0.tgz
 ```
 
-重启 DSH 后，让 agent 调一次 `bili_asr_setup`（或在侧栏面板点「装环境」）。它会：
+重启 DSH 后，让 agent 调一次 `bili_asr_setup`（或到 **设置 → 「B站转写」** 点「装环境」）。它会：
 
 1. 建一个独立 Python venv（优先用 `uv`，没有就用 `python -m venv`）
 2. 装 `faster-whisper==1.2.1`（默认走清华 PyPI 镜像）
@@ -141,7 +141,7 @@ node bin/setup.mjs              # 本地装环境
 node bin/bili-asr.mjs BV1xxx    # 直接跑 CLI
 ```
 
-仓库结构：`index.js`（宿主：工具 + HTTP）/ `client.js`（侧栏面板）/ `bin/`（CLI、转写、setup）/ `cordis.patch.yml`（挂载声明）。
+仓库结构：`index.js`（宿主：工具 + HTTP）/ `client.js`（设置页面板）/ `bin/`（CLI、转写、setup）/ `cordis.patch.yml`（挂载声明）。
 
 ## 致谢与许可
 

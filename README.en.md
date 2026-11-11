@@ -5,7 +5,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) plug
 - **Regular videos / multi-part** → per-part transcript with timestamps
 - **Interactive videos** (`is_stein_gate=1`) → walks Bilibili's *stein* story graph and produces **a branch tree with each node's lines and every ending**
 - **Subtitle tracks first**: every part/node probes `/x/player/v2`; when a track exists the subtitles are used directly and neither audio download nor ASR runs (anonymous requests rarely get one — set `BILI_SESSDATA` to supply a cookie)
-- **Both halves**: agent tools in a session, plus a sidebar **"Bili ASR"** panel to start jobs, watch progress and read documents
+- **Both halves**: agent tools in a session, plus a **Settings → "Bili ASR"** panel to start jobs, watch progress and read documents
 
 ## Why
 
@@ -21,7 +21,7 @@ dsh plugin --profile desktop add dsh-bili-asr
 dsh plugin --profile desktop add https://github.com/jzhha/dsh-bili-asr/releases/download/v0.3.0/dsh-bili-asr-0.3.0.tgz
 ```
 
-After restarting DSH, call `bili_asr_setup` once (or click **Setup** in the sidebar panel). It will:
+After restarting DSH, call `bili_asr_setup` once (or open **Settings → Bili ASR** and click **Setup**). It will:
 
 1. create a dedicated Python venv (uses `uv` when available, otherwise `python -m venv`)
 2. install `faster-whisper==1.2.1` (Tsinghua PyPI mirror by default)

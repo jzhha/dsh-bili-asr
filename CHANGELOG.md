@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `bili_asr_cancel` 工具 + `POST /api/bili-asr/cancel`：排队中的直接出队；运行中的杀掉整棵进程树（node → python），已下载音轨与已转写片段保留。
 - **平台字幕优先**：每个分 P / 剧情节点先查 `/x/player/v2`，有字幕轨就直接取正文字幕，不再下音轨、不跑 ASR；匿名拿不到字幕时保持原样回落本地转写。文档会标注每段文字来源（平台字幕 N 段 / 本地 ASR M 段）。
 - 面板工具条加「取消任务」按钮（仅对运行中/排队中的任务可用）。
+- **入口移到设置页**：不再占侧栏底部，改为 `settings.section`（设置 → B站转写）。
 - 状态输出带上 `canceledAt`；`bili_asr_doc` 对被取消的任务给出说明而不是报错。
 - **失败可诊断**：所有失败都带 `code` + `message` + `hint`（如 `SETUP_REQUIRED` / `RATE_LIMITED` / `AUDIO_FAILED`），`bili_asr_status` 和面板直接显示「怎么办」；文档接口把错误当正文返回。
 
