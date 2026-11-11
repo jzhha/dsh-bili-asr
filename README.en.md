@@ -4,6 +4,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) plug
 
 - **Regular videos / multi-part** → per-part transcript with timestamps
 - **Interactive videos** (`is_stein_gate=1`) → walks Bilibili's *stein* story graph and produces **a branch tree with each node's lines and every ending**
+- **Subtitle tracks first**: every part/node probes `/x/player/v2`; when a track exists the subtitles are used directly and neither audio download nor ASR runs (anonymous requests rarely get one — set `BILI_SESSDATA` to supply a cookie)
 - **Both halves**: agent tools in a session, plus a sidebar **"Bili ASR"** panel to start jobs, watch progress and read documents
 
 ## Why
@@ -88,6 +89,7 @@ Edit the plugin `config` in your profile (reload afterwards):
 - **ASR makes mistakes.** Chinese proper nouns and homophones are frequently wrong (e.g. "纯金雕像" → "纯击在雕像"). The document keeps the raw text; it is not polished.
 - **Silence hallucinations.** On silent stretches Whisper may emit lines like "字幕由…提供"; the document layer filters them by regex.
 - **Interactive nodes usually have no subtitle track**, so transcription is the only source of dialogue. More nodes = longer runtime.
+- **Subtitle tracks are often unavailable anonymously** — set `BILI_SESSDATA` if you want subtitle-first to actually kick in.
 - **Jobs run one at a time.** ASR saturates the CPU; running several concurrently only slows everything down (observed: a job that takes 4 minutes alone took 21 minutes when overlapped). Later jobs show "queued · position N".
 - **Anonymous endpoints can be rate-limited.** An occasional `412` stops the job (no aggressive retries). Audio uses the lowest bitrate track (30216) and still needs a `Referer` header for the CDN.
 - **No login, no account writes.** The plugin never touches your Bilibili account: no comments, favourites or likes.
