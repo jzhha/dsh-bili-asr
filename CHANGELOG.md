@@ -10,6 +10,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Per-part selection in the panel (`--pages` equivalent)
 - Optional smaller Whisper model (`tiny`/`base`) for faster CPU runs
 
+## [0.4.0] - 2026-11-11
+
+### Added
+- `bili_asr_cancel` 工具 + `POST /api/bili-asr/cancel`：排队中的直接出队；运行中的杀掉整棵进程树（node → python），已下载音轨与已转写片段保留。
+- 面板工具条加「取消任务」按钮（仅对运行中/排队中的任务可用）。
+- 状态输出带上 `canceledAt`；`bili_asr_doc` 对被取消的任务给出说明而不是报错。
+
 ## [0.3.1] - 2026-11-11
 
 ### Fixed

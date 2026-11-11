@@ -4,10 +4,8 @@
 
 ## P0 — 发布前
 
-### 1. 面板支持取消正在跑的任务
-- **why**：跑一个 30 分钟音频的互动剧要十几分钟，中途发现挑错视频只能等。
-- **do**：宿主 kill 子进程 + 状态置 `canceled` + 清理 `.partial` 音轨；HTTP `POST /api/bili-asr/cancel?id=`；面板加「取消」按钮（仅 running 可见）。
-- **AC**：取消后 2 秒内状态变 `canceled`，python 子进程消失，`jobs.json` 记录 `canceledAt`。
+### ~~1. 面板支持取消正在跑的任务~~（已在 0.4.0 完成）
+- 实现：`bili_asr_cancel` 工具 + `POST /api/bili-asr/cancel`；运行中的用 `taskkill /T /F` 杀整棵进程树（实测 python 及其子进程一起退出），排队中的直接出队；状态写 `canceledAt`，面板工具条有「取消任务」按钮。
 
 ### 2. 无 `uv` 时的安装分支要真机验证
 - **why**：README 承诺 uv 缺失时回落 `python -m venv`，但只在有 uv 的机器上跑过。

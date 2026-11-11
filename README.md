@@ -43,6 +43,7 @@ bili_asr_setup({ pipIndex: "https://pypi.tuna.tsinghua.edu.cn/simple", hfEndpoin
 |---|---|
 | `bili_asr_run({ video, pages?, noAsr? })` | 起一个转写任务，立即返回 `taskId` |
 | `bili_asr_status({ id? })` | 查进度与最近日志；不传 id 列出最近任务 |
+| `bili_asr_cancel({ id })` | 取消任务：排队中的直接出队，运行中的杀掉 node → python 进程树 |
 | `bili_asr_doc({ id, offset?, limit? })` | 分页读 `script.md`（`next` 非空时继续读） |
 | `bili_asr_setup({ pipIndex?, hfEndpoint? })` | 一次性装环境 |
 

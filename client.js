@@ -27,6 +27,7 @@ window.__ModuleLoader__.load({
       interrupted: '已中断',
       doc: '文档',
       copy: '复制路径',
+      cancel: '取消任务',
       copied: '已复制',
       loading: '读取中…',
       noDoc: '还没有文档',
@@ -48,6 +49,7 @@ window.__ModuleLoader__.load({
       interrupted: 'interrupted',
       doc: 'Document',
       copy: 'Copy path',
+      cancel: 'Cancel',
       copied: 'Copied',
       loading: 'Loading…',
       noDoc: 'No document yet',
@@ -160,6 +162,15 @@ window.__ModuleLoader__.load({
         catch { setNote(p); }
       };
 
+      const cancel = async () => {
+        if (!sel) return;
+        try {
+          const r = await jpost('/cancel', { id: sel });
+          setNote(r && r.ok ? '已取消 ' + sel : ((r && r.error) || '取消失败'));
+        } catch (e) { setNote(String((e && e.message) || e)); }
+        await load();
+      };
+
       const stateText = (s) => (s === 'running' ? t('running') : s === 'failed' ? t('failed') : s === 'interrupted' ? t('interrupted') : t('done'));
 
       return h('div', { className: 'basr-root' },
@@ -196,7 +207,12 @@ window.__ModuleLoader__.load({
           h('div', { className: 'basr-doc' },
             h('div', { className: 'basr-toolbar' },
               h('span', null, t('doc') + (doc && doc.doc ? '：' + doc.doc : '')),
-              h('button', { className: 'basr-btn', disabled: !(doc && doc.doc), onClick: copyPath }, t('copy'))
+              h('button', { className: 'basr-btn', disabled: !(doc && doc.doc), onClick: copyPath }, t('copy')),
+              h('button', {
+                className: 'basr-btn',
+                disabled: !(jobs.find((x) => x.id === sel) && ['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
+                onClick: cancel,
+              }, t('cancel'))
             ),
             h('pre', { className: 'basr-pre' },
               !sel ? t('noDoc') :

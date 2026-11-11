@@ -1,6 +1,6 @@
 {
   "name": "dsh-bili-asr",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "DeepSeek Harness 插件：B站视频转本地文字（匿名取音轨 + faster-whisper）；互动视频自动抓 stein 剧情树，输出分支 + 台词。宿主工具 + 侧栏面板两端。",
   "type": "module",
   "main": "index.js",

@@ -116,6 +116,7 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
+  job.pid = child.pid;
 
   const onLine = (line) => {
     if (!line.trim()) return;
@@ -151,7 +152,7 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
     if (buf.trim()) onLine(buf);
     job.exitCode = code;
     if (err) { job.state = 'failed'; job.error = err; }
-    else if (job.state !== 'done') job.state = code === 0 ? 'done' : 'failed';
+    else if (job.state !== 'done' && job.state !== 'canceled') job.state = code === 0 ? 'done' : 'failed';
     job.endedAt = Date.now();
     running = null;
     persist(outDir);
@@ -159,6 +160,44 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
   };
   child.on('exit', (code) => done(code));
   child.on('error', (e) => done(-1, e.message));
+}
+
+/** 取消任务：排队中的直接出队；运行中的杀掉整棵进程树（node → python） */
+function cancelJob(id) {
+  const job = jobs.get(id);
+  if (!job) return { error: '没有这个任务: ' + id };
+  if (job.state === 'canceled') return { ok: true, id, state: 'canceled', note: '已经取消过了' };
+  if (job.state === 'done' || job.state === 'failed' || job.state === 'interrupted') {
+    return { error: '任务已结束（' + job.state + '），不能取消' };
+  }
+  if (job.state === 'canceled') {
+    return { state: 'canceled', text: '任务已取消；已下载的音轨与已转写的片段仍保留在目录里', hint: '重新发起即可继续' };
+  }
+  if (job.state === 'queued') {
+    const i = queue.findIndex((q) => q.job.id === id);
+    if (i >= 0) queue.splice(i, 1);
+    job.state = 'canceled';
+    job.endedAt = Date.now();
+    job.canceledAt = job.endedAt;
+    persist(job.outDir);
+    return { ok: true, id, state: 'canceled', killed: false };
+  }
+  // running
+  job.state = 'canceled';
+  job.canceledAt = Date.now();
+  job.endedAt = job.canceledAt;
+  const pid = job.pid;
+  if (pid) {
+    try {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+      } else {
+        process.kill(pid, 'SIGTERM');
+      }
+    } catch { /* 进程可能已退出 */ }
+  }
+  persist(job.outDir);
+  return { ok: true, id, state: 'canceled', killed: !!pid };
 }
 
 function secondsOf(job) {
@@ -184,6 +223,9 @@ function statusOf(id) {
     id: job.id, kind: job.kind, bv: job.bv, title: job.title, state: job.state,
     seconds: secondsOf(job),
   };
+  if (job.state === 'canceled') {
+    return { state: 'canceled', text: '任务已取消；已下载的音轨与已转写的片段仍保留在目录里', hint: '重新发起即可继续' };
+  }
   if (job.state === 'queued') {
     out.position = queue.findIndex((q) => q.job.id === job.id) + 1;
     out.progressText = '排队中（第 ' + out.position + ' 位）';
@@ -194,6 +236,7 @@ function statusOf(id) {
     out.progressText = job.total ? `${job.stage} ${job.done}/${job.total}` : `${job.stage}…`;
   }
   if (job.note) out.note = job.note;
+  if (job.canceledAt) out.canceledAt = new Date(job.canceledAt).toISOString();
   if (job.state === 'done' && job.doc && existsSync(job.doc)) out.docChars = readFileSync(job.doc, 'utf8').length;
   if (job.exitCode !== undefined && job.state !== 'done') out.exitCode = job.exitCode;
   out.log = job.log.slice(-8);
@@ -203,6 +246,9 @@ function statusOf(id) {
 function docOf(id, offset = 0, limit = 6000) {
   const job = jobs.get(id);
   if (!job) return { error: '没有这个任务: ' + id };
+  if (job.state === 'canceled') {
+    return { state: 'canceled', text: '任务已取消；已下载的音轨与已转写的片段仍保留在目录里', hint: '重新发起即可继续' };
+  }
   if (job.state === 'queued') {
     const pos = queue.findIndex((q) => q.job.id === job.id) + 1;
     return { state: 'queued', text: `排队中（第 ${pos} 位）：前面还有任务在跑，轮到时自动开始`, hint: '任务串行执行，避免几个 ASR 抢 CPU' };
@@ -335,6 +381,13 @@ export function apply(ctx, config = {}) {
   });
 
   tool({
+    name: 'bili_asr_cancel',
+    description: '取消一个正在跑或排队中的 bili-asr 任务。运行中的会杀掉整棵进程树（node → python），已下载的音轨和已转写的片段保留。',
+    parameters: { id: { type: 'string', description: '任务 id', required: true } },
+    run: (args) => cancelJob(args.id),
+  });
+
+  tool({
     name: 'bili_asr_status',
     description: '查 bili-asr 任务进度：给 id 返回状态与最近日志；不给 id 返回最近 10 个任务。',
     parameters: { id: { type: 'string', description: '任务 id；省略则列出最近任务', required: false } },
@@ -393,6 +446,15 @@ export function apply(ctx, config = {}) {
             sendJson(res, 200, { ok: true, ...startProc(config, 'transcribe', CLI, [bv, '--out', od, ...extra], {
               bv, doc: join(od, bv, 'script.md'),
             }) });
+            return;
+          }
+          if (sub === '/cancel' && req.method === 'POST') {
+            const body = await readBody(req);
+            let args = {};
+            try { args = JSON.parse(body || '{}'); } catch { /* 允许空 body */ }
+            const id = args.id || url.searchParams.get('id') || '';
+            if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
+            sendJson(res, 200, { ok: true, ...cancelJob(id) });
             return;
           }
           if (sub === '/setup' && req.method === 'POST') {
