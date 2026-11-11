@@ -223,9 +223,6 @@ function statusOf(id) {
     id: job.id, kind: job.kind, bv: job.bv, title: job.title, state: job.state,
     seconds: secondsOf(job),
   };
-  if (job.state === 'canceled') {
-    return { state: 'canceled', text: '任务已取消；已下载的音轨与已转写的片段仍保留在目录里', hint: '重新发起即可继续' };
-  }
   if (job.state === 'queued') {
     out.position = queue.findIndex((q) => q.job.id === job.id) + 1;
     out.progressText = '排队中（第 ' + out.position + ' 位）';
