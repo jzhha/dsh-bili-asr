@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Per-part selection in the panel (`--pages` equivalent)
 - Optional smaller Whisper model (`tiny`/`base`) for faster CPU runs
 
+## [0.3.1] - 2026-11-11
+
+### Fixed
+- cordis.patch.yml 不再写死本机数据目录：别人装下来会落到默认的 $DSH_HOME/bili-asr，不再指向不存在的盘符。
+- docs/PUBLISH.md 去掉本机绝对路径，换成仓库相对写法。
+
 ## [0.3.0] - 2026-11-11
 
 ### Added

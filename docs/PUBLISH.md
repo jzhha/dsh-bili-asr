@@ -6,7 +6,7 @@
 ## 0. 前置
 
 ```powershell
-cd G:\DSH-DATA\plugin-src\dsh-bili-asr
+cd <repo>   # 你 clone 下来的目录
 git status              # 应看到 22 项已暂存
 ```
 

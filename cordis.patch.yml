@@ -1,7 +1,13 @@
-# dsh-bili-asr —— 宿主半端插件声明
-# dataDir 下放 venv/ model/ works/；本机沿用它，venv 和模型已经在里面了。
+# dsh-bili-asr —— 宿主半端的挂载声明
+#
+# 数据目录默认在 $DSH_HOME/bili-asr（venv / model / works 都在它下面）。
+# 想换位置不要改这个文件，在你的 profile 的 cordis.patch.yml 里加一层覆盖：
+#
+#   - id: bili-asr
+#     name: dsh-bili-asr
+#     config:
+#       dataDir: /your/data/dir
+#
 - insert:
     - id: bili-asr
       name: dsh-bili-asr
-      config:
-        dataDir: 'G:/DSH-DATA/plugins/bili-asr'
