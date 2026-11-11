@@ -127,6 +127,8 @@ function launch(job, config, kind, scriptPath, args, dataDir, outDir) {
       if (j.stage === 'view') { job.stage = '读取视频信息'; if (j.title) job.title = j.title; }
       if (j.stage === 'graph') { job.stage = '抓剧情树'; job.done = 0; job.total = j.nodes; }
       if (j.stage === 'audio') { job.stage = '下音轨'; job.done = j.ok; job.total = j.total; }
+      if (j.stage === 'subtitle') { job.stage = '查字幕'; job.done = (job.done || 0) + 1; }
+      if (j.stage === 'subtitle-summary') { job.stage = '查字幕'; job.done = j.fromSubtitle; job.total = j.fromSubtitle + j.remaining; }
       if (j.stage === 'targets') { job.stage = '准备转写'; job.total = j.count; }
       if (j.stage === 'done' && typeof j.i === 'number') { job.stage = '转写'; job.done = j.i; job.total = j.n; }
       if (j.stage === 'finished') { job.stage = '出文档'; job.done = j.ok; job.total = j.total; }

@@ -42,10 +42,12 @@ export function parseBvid(input) {
   return m[0];
 }
 
-export async function getJson(url, bv, tries = 3) {
+export async function getJson(url, bv, tries = 3, cookie = '') {
   for (let i = 0; i < tries; i++) {
     try {
-      const res = await fetch(url, { headers: headers(bv), signal: AbortSignal.timeout(30000) });
+      const h = headers(bv);
+      if (cookie) h.cookie = cookie;
+      const res = await fetch(url, { headers: h, signal: AbortSignal.timeout(30000) });
       if (res.status === 412) return { code: -412, message: 'HTTP 412（风控）' };
       return await res.json();
     } catch (e) {

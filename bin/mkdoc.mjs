@@ -33,11 +33,15 @@ export function buildInteractiveDoc({ bv, title, graph, transcripts, out }) {
   const silent = graph.nodes.filter((n) => n.cid && !say(n));
   const leaves = graph.nodes.filter((n) => n.isLeaf);
   const chars = [...transcripts.values()].reduce((s, t) => s + clean(t.text).length, 0);
+  const subs = [...transcripts.values()].filter((d) => d.source === 'subtitle').length;
+  const asrs = [...transcripts.values()].filter((d) => d.source !== 'subtitle' && clean(d.text)).length;
 
-  let md = `# ${bv} ${title} · 分支 + 台词（本地 ASR）\n\n`;
+  const srcLabel = subs > 0 && asrs === 0 ? '平台字幕' : (subs > 0 ? '平台字幕 + 本地 ASR' : '本地 ASR');
+  let md = `# ${bv} ${title} · 分支 + 台词（${srcLabel}）\n\n`;
   md += `- 结构：${graph.nodes.length} 节点 / ${graph.edges.length} 选择边 / ${leaves.length} 结局\n`;
   md += `- 台词：${withText.length}/${graph.nodes.length} 个节点转出文字；${silent.length} 个节点无台词（环境音/静音）\n`;
   md += `- 总字数 ${chars}；来源 stein 剧情图 + 节点音轨（faster-whisper small, CPU int8）\n`;
+  md += `- 文字来源：平台字幕 ${subs} 段 / 本地 ASR ${asrs} 段\n`;
   md += `- ⚠️ ASR 有误字，引用原句请按语境理解\n\n---\n\n`;
 
   const seen = new Set();
@@ -71,8 +75,12 @@ export function buildInteractiveDoc({ bv, title, graph, transcripts, out }) {
 }
 
 export function buildLinearDoc({ bv, title, pages, transcripts, out }) {
-  let md = `# ${bv} ${title} · 逐段台词（本地 ASR）\n\n`;
-  md += `- 分 P ${pages.length}；来源音轨（faster-whisper small, CPU int8）\n- ⚠️ ASR 有误字\n\n---\n\n`;
+  const subs2 = [...transcripts.values()].filter((d) => d.source === 'subtitle').length;
+  const asrs2 = [...transcripts.values()].filter((d) => d.source !== 'subtitle' && clean(d.text)).length;
+  const srcLabel2 = subs2 > 0 && asrs2 === 0 ? '平台字幕' : (subs2 > 0 ? '平台字幕 + 本地 ASR' : '本地 ASR');
+  let md = `# ${bv} ${title} · 逐段台词（${srcLabel2}）\n\n`;
+  md += `- 分 P ${pages.length}；平台字幕 ${subs2} 段 / 本地 ASR ${asrs2} 段\n- ⚠️ 转写有误字\n\n---\n\n`;
+  md += '';
   let chars = 0;
   let got = 0;
   for (const p of pages) {

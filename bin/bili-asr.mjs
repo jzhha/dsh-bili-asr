@@ -8,9 +8,10 @@
 // 产物默认在 <BILI_ASR_HOME>/works/<BV>/：graph.json / tree.md / script.md / transcripts/
 // 依赖：<BILI_ASR_HOME>/venv 里的 faster-whisper + <BILI_ASR_HOME>/model（用 node bin/setup.mjs 装）
 import { spawn } from 'node:child_process';
-import { writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { BIN, MODEL, PYTHON, WORKS, workDir, log, parseBvid, getJson } from './lib.mjs';
+import { BIN, MODEL, PYTHON, WORKS, workDir, log, parseBvid, getJson, sleep } from './lib.mjs';
+import { probeSubtitle, fetchSubtitle } from './subtitle.mjs';
 import { isInteractive, graphVersion, crawl, renderTree } from './stein.mjs';
 import { downloadAudio } from './audio.mjs';
 import { buildInteractiveDoc, buildLinearDoc } from './mkdoc.mjs';
@@ -64,15 +65,43 @@ if (interactive) {
 
 log({ stage: 'targets', count: cids.length });
 
-// 3) 音轨
-await downloadAudio(bv, cids, join(dir, 'audio'));
-
-// 4) 转写
+// 3) 平台字幕优先：能拿到字幕的分P/节点直接落 transcripts，不占 CPU
+const tdir = join(dir, 'transcripts');
+mkdirSync(tdir, { recursive: true });
+let pending = cids;
 if (!noAsr) {
+  const remaining = [];
+  let fromSubtitle = 0;
+  for (const item of cids) {
+    const track = await probeSubtitle(bv, item.cid);
+    if (track) {
+      const parsed = await fetchSubtitle(bv, track);
+      if (parsed) {
+        const duration = parsed.segments.length ? parsed.segments[parsed.segments.length - 1].end : 0;
+        writeFileSync(join(tdir, String(item.cid) + '.json'), JSON.stringify({
+          cid: item.cid, duration, segments: parsed.segments, text: parsed.text,
+          source: 'subtitle', lan: track.lan,
+        }, null, 1), 'utf8');
+        fromSubtitle++;
+        log({ stage: 'subtitle', cid: item.cid, state: 'ok', lan: track.lan, chars: parsed.text.length });
+        await sleep(150);
+        continue;
+      }
+    }
+    remaining.push(item);
+  }
+  log({ stage: 'subtitle-summary', fromSubtitle, remaining: remaining.length });
+  pending = remaining;
+}
+
+// 4) 没字幕的才下音轨 + 本地转写
+if (pending.length) await downloadAudio(bv, pending, join(dir, 'audio'));
+
+if (!noAsr && pending.length) {
   if (!existsSync(PYTHON)) throw new Error(`没找到 Python 环境：${PYTHON}\n先跑 node bin/setup.mjs（或插件里的 bili_asr_setup 工具）`);
   if (!existsSync(join(MODEL, 'model.bin'))) throw new Error(`没找到 Whisper 模型：${MODEL}\n先跑 node bin/setup.mjs`);
   await new Promise((resolve, reject) => {
-    const child = spawn(PYTHON, [join(BIN, 'transcribe.py'), MODEL, join(dir, 'audio'), join(dir, 'transcripts')], {
+    const child = spawn(PYTHON, [join(BIN, 'transcribe.py'), MODEL, join(dir, 'audio'), tdir], {
       stdio: 'inherit',
     });
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('transcribe.py exit ' + code))));
@@ -82,7 +111,7 @@ if (!noAsr) {
 
 // 5) 文档
 const map = new Map();
-const tdir = join(dir, 'transcripts');
+
 try {
   for (const name of readdirSync(tdir)) {
     if (!name.endsWith('.json') || name.startsWith('transcripts-summary')) continue;
