@@ -1,0 +1,12 @@
+# normalize line endings, keep binaries untouched
+* text=auto eol=lf
+
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+*.tgz binary
+*.bin binary
+*.m4s binary
+*.zstd binary
+*.png binary

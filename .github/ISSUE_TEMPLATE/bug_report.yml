@@ -1,0 +1,73 @@
+name: Bug report
+description: Something broke — transcription failed, panel empty, install stuck…
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please fill in what you actually saw — copied error text beats a description of it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, what happened instead?
+      placeholder: |
+        1. ran `bili_asr_run` with BV…
+        2. panel showed "running 3/16" and never finished
+        3. expected script.md
+    validations:
+      required: true
+  - type: input
+    id: bv
+    attributes:
+      label: Video (BV id or URL)
+      description: If the problem is video-specific, which one? (skip if it happens with every video)
+      placeholder: BV1xxxxxxxxx
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen
+      options:
+        - Sidebar panel
+        - Agent tools (bili_asr_*)
+        - Command line (bin/bili-asr.mjs)
+        - Setup (bin/setup.mjs / bili_asr_setup)
+    validations:
+      required: true
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH version
+      description: Desktop app version or `dsh --version`
+      placeholder: 0.2.1-rc.3
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: dsh-bili-asr version
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and Node
+      placeholder: Windows 11 / Node 24.19.0
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Paste the last few lines of `bili_asr_status({ id })` output, or `works/<BV>/` job log,
+        or the `setup` output. Redact anything you consider private.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I ran `bin/setup.mjs` (or `bili_asr_setup`) successfully before this
+        - label: This is not a Bilibili server-side error (412 / 403 / video removed)
+        - label: I searched existing issues

@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a capability, a better default, or a different output shape
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the situation, not just the feature. "I want X" is easier to judge than "it would be nice to have X".
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you hitting
+      placeholder: I transcribe 40-minute interview videos; 20 minutes of CPU per video is too slow for a daily loop.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you suggest
+      description: If you have a concrete idea, say how it would behave. Alternatives are welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Transcription quality / speed
+        - Interactive video graph
+        - Panel / UI
+        - Agent tools
+        - Installation / packaging
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints worth knowing
+      description: No login, CPU-only, no huge downloads, Windows-first, etc. — anything that would rule a design out.

@@ -1,0 +1,7 @@
+# dsh-bili-asr —— 宿主半端插件声明
+# dataDir 下放 venv/ model/ works/；本机沿用它，venv 和模型已经在里面了。
+- insert:
+    - id: bili-asr
+      name: dsh-bili-asr
+      config:
+        dataDir: 'G:/DSH-DATA/plugins/bili-asr'

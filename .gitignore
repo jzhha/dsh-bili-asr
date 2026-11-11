@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# local data produced by running the tool (venv, model, transcripts)
+data/
+venv/
+model/
+works/
+jobs.json
+*.m4s
+*.zstd
+transcripts/
+
+# build artifacts
+*.tgz
+dist/
+*.log
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# local secrets and one-off scripts
+.env
+.env.*
+*.local
+_scratch/
+_tmp/

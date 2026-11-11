@@ -1,0 +1,63 @@
+{
+  "name": "dsh-bili-asr",
+  "version": "0.3.0",
+  "description": "DeepSeek Harness 插件：B站视频转本地文字（匿名取音轨 + faster-whisper）；互动视频自动抓 stein 剧情树，输出分支 + 台词。宿主工具 + 侧栏面板两端。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "bin",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "bilibili",
+    "asr",
+    "whisper",
+    "subtitle",
+    "interactive-video"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "setup": "node bin/setup.mjs",
+    "cli": "node bin/bili-asr.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jzhha/dsh-bili-asr.git"
+  },
+  "homepage": "https://github.com/jzhha/dsh-bili-asr#readme",
+  "bugs": {
+    "url": "https://github.com/jzhha/dsh-bili-asr/issues"
+  }
+}

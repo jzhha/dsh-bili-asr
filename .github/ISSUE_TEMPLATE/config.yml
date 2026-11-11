@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: DeepSeek Harness (DSH)
+    url: https://github.com/deepseek-ai/deepseek-harness
+    about: Plugin system, profiles and host API questions belong upstream.
+  - name: faster-whisper
+    url: https://github.com/SYSTRAN/faster-whisper
+    about: Model accuracy and CPU performance come from the engine, not this wrapper.
