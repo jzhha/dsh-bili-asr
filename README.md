@@ -17,6 +17,9 @@ B 站绝大多数视频没有字幕轨（`/x/player/v2` 返回 0 条字幕），
 ```bash
 # 1) 装插件（桌面版也可在「插件 → 添加插件」里输入 dsh-bili-asr）
 dsh plugin --profile desktop add dsh-bili-asr
+
+# 不走 npm 也行：直接用 Release 里的安装包
+dsh plugin --profile desktop add https://github.com/jzhha/dsh-bili-asr/releases/download/v0.3.0/dsh-bili-asr-0.3.0.tgz
 ```
 
 重启 DSH 后，让 agent 调一次 `bili_asr_setup`（或在侧栏面板点「装环境」）。它会：
