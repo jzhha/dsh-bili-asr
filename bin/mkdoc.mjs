@@ -20,7 +20,7 @@ function loadTranscripts(dir) {
   return map;
 }
 
-export function buildInteractiveDoc({ bv, title, graph, transcripts, out }) {
+export function buildInteractiveDoc({ bv, title, graph, transcripts, frames, out }) {
   const byId = new Map(graph.nodes.map((n) => [n.edgeId, n]));
   const kids = new Map();
   for (const e of graph.edges) {
@@ -59,6 +59,17 @@ export function buildInteractiveDoc({ bv, title, graph, transcripts, out }) {
   };
   walk(0, 0);
 
+  if (frames && [...frames.values()].some(Boolean)) {
+    md += `\n---\n\n## 节点截图\n\n`;
+    const seenShot = new Set();
+    for (const n of graph.nodes) {
+      const key = String(n.cid);
+      if (!n.cid || seenShot.has(key) || !frames.get(key)) continue;
+      seenShot.add(key);
+      md += `- **${nodeLabel(n)}**：![](frames/${n.cid}.jpg)\n`;
+    }
+  }
+
   md += `\n---\n\n## 结局台词\n\n`;
   for (const n of leaves) md += `- **${nodeLabel(n)}**${say(n) ? '：' + say(n) : ''}\n`;
 
@@ -74,7 +85,7 @@ export function buildInteractiveDoc({ bv, title, graph, transcripts, out }) {
   return { out, nodes: graph.nodes.length, withText: withText.length, silent: silent.length, chars };
 }
 
-export function buildLinearDoc({ bv, title, pages, transcripts, out }) {
+export function buildLinearDoc({ bv, title, pages, transcripts, frames, out }) {
   const subs2 = [...transcripts.values()].filter((d) => d.source === 'subtitle').length;
   const asrs2 = [...transcripts.values()].filter((d) => d.source !== 'subtitle' && clean(d.text)).length;
   const srcLabel2 = subs2 > 0 && asrs2 === 0 ? '平台字幕' : (subs2 > 0 ? '平台字幕 + 本地 ASR' : '本地 ASR');
@@ -88,6 +99,10 @@ export function buildLinearDoc({ bv, title, pages, transcripts, out }) {
     const text = clean(t?.text);
     if (text) { got++; chars += text.length; }
     md += `## P${p.page} ${p.part}（${p.duration}s）\n\n${text || '（无语音/无台词）'}\n\n`;
+  }
+  if (frames && [...frames.values()].some(Boolean)) {
+    md += `\n## 分P截图\n\n`;
+    for (const p of pages) if (frames.get(String(p.cid))) md += `- **P${p.page} ${p.part}**：![](frames/${p.cid}.jpg)\n`;
   }
   writeFileSync(out, md, 'utf8');
   return { out, pages: pages.length, withText: got, chars };

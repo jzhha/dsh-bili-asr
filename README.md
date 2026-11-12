@@ -5,6 +5,7 @@
 
 - **普通视频 / 分P** → 逐段台词（带起止时间）
 - **互动视频**（`is_stein_gate=1`）→ 抓 B 站 stein 剧情图，输出**分支树 + 每个节点的台词 + 结局台词**
+- **节点截图**（`--frames`）：每个分P/节点抓一帧存进 `frames/`，文档里自动附上
 - **有字幕轨就直接用**：每个分 P / 节点先查 `/x/player/v2`，拿到平台字幕就跳过音轨下载与 ASR（匿名多数拿不到，可设 `BILI_SESSDATA` 补一段 cookie）
 - **两端**：会话里可以调工具；**设置 → 「B站转写」** 里有一个面板，能起任务、看进度、读文档
 
@@ -58,6 +59,7 @@ node bin/bili-asr.mjs BV1xxxxxxxxx                   # 普通视频
 node bin/bili-asr.mjs BV159WJ63EMK                   # 互动视频（自动识别）
 node bin/bili-asr.mjs BV1xxx --pages 1,3             # 只做指定分P
 node bin/bili-asr.mjs BV1xxx --out ./somewhere       # 换个输出目录
+node bin/bili-asr.mjs BV159WJ63EMK --frames         # 每个节点再抓一帧截图（约 25 KB/张）
 ```
 
 产物（默认 `$DSH_HOME/bili-asr/works/<BV>/`）：
@@ -67,6 +69,7 @@ graph.json      互动视频的剧情图（节点/选择边/结局）
 tree.md         纯结构树
 script.md       分支 + 台词（普通视频是逐段台词）
 audio/          节点音轨
+frames/         节点截图（--frames 时）
 transcripts/    逐段转写 JSON（带起止时间）
 ```
 

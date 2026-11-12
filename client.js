@@ -28,6 +28,7 @@ window.__ModuleLoader__.load({
       doc: '文档',
       copy: '复制路径',
       cancel: '取消任务',
+      frames: '抓截图',
       copied: '已复制',
       loading: '读取中…',
       noDoc: '还没有文档',
@@ -50,6 +51,7 @@ window.__ModuleLoader__.load({
       doc: 'Document',
       copy: 'Copy path',
       cancel: 'Cancel',
+      frames: 'Frames',
       copied: 'Copied',
       loading: 'Loading…',
       noDoc: 'No document yet',
@@ -81,6 +83,7 @@ window.__ModuleLoader__.load({
 .basr-entry:hover{background:var(--dsw-alias-bg-secondary,rgba(127,127,127,.14));opacity:1}
 .basr-entry.rail{width:36px;height:36px;justify-content:center;padding:0}
 .basr-entry svg{flex:none;opacity:.85}
+.basr-check{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.85;white-space:nowrap;cursor:pointer}
 `;
 
     let cssInstalled = false;
@@ -108,6 +111,7 @@ window.__ModuleLoader__.load({
       const [jobs, setJobs] = useState([]);
       const [input, setInput] = useState('');
       const [busy, setBusy] = useState(false);
+      const [wantFrames, setWantFrames] = useState(false);
       const [sel, setSel] = useState(null);
       const [doc, setDoc] = useState(null);
       const [note, setNote] = useState('');
@@ -142,7 +146,7 @@ window.__ModuleLoader__.load({
         if (!video || busy) return;
         setBusy(true); setNote('');
         try {
-          const r = await jpost('/run', { video });
+          const r = await jpost('/run', { video, frames: wantFrames });
           if (r && r.ok) { setSel(r.id); setInput(''); load(); }
           else setNote((r && (r.error || r.hint)) || 'run failed');
         } catch (e) { setNote(String((e && e.message) || e)); }
@@ -188,6 +192,10 @@ window.__ModuleLoader__.load({
             onChange: (e) => setInput(e.target.value),
             onKeyDown: (e) => { if (e.key === 'Enter') run(); },
           }),
+          h('label', { className: 'basr-check' },
+            h('input', { type: 'checkbox', checked: wantFrames, onChange: (e) => setWantFrames(e.target.checked) }),
+            h('span', null, t('frames'))
+          ),
           h('button', { className: 'basr-btn', disabled: busy, onClick: run }, busy ? '…' : t('run')),
           h('button', { className: 'basr-btn', disabled: busy, onClick: setup }, t('setup')),
           h('button', { className: 'basr-btn', onClick: load }, t('refresh'))

@@ -12,6 +12,7 @@ import { writeFileSync, readFileSync, readdirSync, existsSync, mkdirSync } from 
 import { join } from 'node:path';
 import { BIN, MODEL, PYTHON, WORKS, workDir, log, parseBvid, getJson, sleep, die, apiHint } from './lib.mjs';
 import { probeSubtitle, fetchSubtitle } from './subtitle.mjs';
+import { grabFrames } from './frame.mjs';
 import { isInteractive, graphVersion, crawl, renderTree } from './stein.mjs';
 import { downloadAudio } from './audio.mjs';
 import { buildInteractiveDoc, buildLinearDoc } from './mkdoc.mjs';
@@ -32,6 +33,7 @@ const argOf = (name, fallback) => {
 const onlyPages = argOf('--pages', '').split(',').filter(Boolean).map(Number);
 const noAsr = argv.includes('--no-asr');
 const outRoot = argOf('--out', '');
+const wantFrames = argv.includes('--frames');
 
 const dir = workDir(bv, outRoot);
 log({ stage: 'start', bv, dir });
@@ -68,6 +70,14 @@ if (interactive) {
 
 if (!cids.length) die('NO_PARTS', '没有可处理的分P/节点', '确认视频不是纯互动入口或已下架；可加 --pages 指定。');
 log({ stage: 'targets', count: cids.length });
+
+// 2.5) 节点截图（--frames）：每个分P/节点抓一帧，写 frames/<cid>.jpg
+let frames = new Map();
+if (wantFrames) {
+  const shot = await grabFrames(bv, cids, join(dir, 'frames'));
+  frames = shot.map;
+  log({ stage: 'frames-summary', ok: shot.ok, total: shot.total });
+}
 
 // 3) 平台字幕优先：能拿到字幕的分P/节点直接落 transcripts，不占 CPU
 const tdir = join(dir, 'transcripts');
@@ -137,9 +147,9 @@ try {
 
 let result;
 if (interactive) {
-  result = buildInteractiveDoc({ bv, title, graph, transcripts: map, out: join(dir, 'script.md') });
+  result = buildInteractiveDoc({ bv, title, graph, transcripts: map, frames, out: join(dir, 'script.md') });
 } else {
   const pages = (view.data.pages || []).filter((p) => !onlyPages.length || onlyPages.includes(p.page));
-  result = buildLinearDoc({ bv, title, pages, transcripts: map, out: join(dir, 'script.md') });
+  result = buildLinearDoc({ bv, title, pages, transcripts: map, frames, out: join(dir, 'script.md') });
 }
 log({ stage: 'done', ...result });

@@ -10,6 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Per-part selection in the panel (`--pages` equivalent)
 - Optional smaller Whisper model (`tiny`/`base`) for faster CPU runs
 
+## [0.5.0] - 2026-11-12
+
+### Added
+- **互动视频节点截图**（`--frames` / `bili_asr_run({ frames: true })` / 面板勾选「抓截图」）：每个分P或剧情节点用 Range 只取视频开头 ~1.2 MB，PyAV 解出 1 秒处一帧存成 `frames/<cid>.jpg`，文档里自动生成「节点截图」一节（`![]` 相对路径）。
+- 依赖新增 Pillow（`frames.py` 存 JPEG 用）；setup 时一并安装。
+
+### Changed
+- 入口从侧栏底部挪进「设置 → B站转写」。
+
 ## [0.4.0] - 2026-11-11
 
 ### Added
