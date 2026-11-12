@@ -111,10 +111,10 @@ try {
 
   // 3) 依赖
   if (have('uv')) {
-    run('uv', ['pip', 'install', '--python', PY, '--index-url', PIP_INDEX, 'faster-whisper==1.2.1']);
+    run('uv', ['pip', 'install', '--python', PY, '--index-url', PIP_INDEX, 'faster-whisper==1.2.1', 'pillow']);
   } else {
     run(PY, ['-m', 'pip', 'install', '--upgrade', 'pip', '--index-url', PIP_INDEX]);
-    run(PY, ['-m', 'pip', 'install', '--index-url', PIP_INDEX, 'faster-whisper==1.2.1']);
+    run(PY, ['-m', 'pip', 'install', '--index-url', PIP_INDEX, 'faster-whisper==1.2.1', 'pillow']);
   }
   steps.push({ step: 'deps', ok: true });
 
