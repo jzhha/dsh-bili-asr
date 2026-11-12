@@ -9,7 +9,7 @@ import { getJson, sleep, log, PYTHON, BIN } from './lib.mjs';
 const HEAD = (bv) => ({ 'user-agent': 'Mozilla/5.0', referer: `https://www.bilibili.com/video/${bv}/` });
 
 /** 取一个 cid 的一帧，写到 <outDir>/<cid>.jpg。返回 { ok, bytes?, error? } */
-export async function grabFrame(bv, cid, outJpg) {
+export async function grabFrame(bv, cid, outJpg, at = 1.0) {
   const j = await getJson(`https://api.bilibili.com/x/player/playurl?bvid=${bv}&cid=${cid}&fnval=16&fourk=1`, bv);
   if (j.code !== 0 || !j.data?.dash?.video?.length) return { ok: false, error: 'no-video-track' };
   const track = [...j.data.dash.video].sort((a, b) => a.bandwidth - b.bandwidth)[0];
@@ -26,9 +26,9 @@ export async function grabFrame(bv, cid, outJpg) {
     writeFileSync(tmpFile, buf);
 
     mkdirSync(join(outJpg, '..'), { recursive: true });
-    const r = spawnSync(PYTHON, [join(BIN, 'frames.py'), tmpFile, outJpg, '1.0'], { encoding: 'utf8', timeout: 60000 });
+    const r = spawnSync(PYTHON, [join(BIN, 'frames.py'), tmpFile, outJpg, String(at)], { encoding: 'utf8', timeout: 90000 });
     if (r.status !== 0) return { ok: false, error: (r.stdout || r.stderr || 'frame-failed').trim().slice(0, 120) };
-    return { ok: true, bytes: existsSync(outJpg) ? statSync(outJpg).size : 0 };
+    return { ok: true, bytes: existsSync(outJpg) ? statSync(outJpg).size : 0, info: (r.stdout || '').trim() };
   } catch (e) {
     return { ok: false, error: String(e.message || e).slice(0, 120) };
   } finally {
@@ -37,16 +37,16 @@ export async function grabFrame(bv, cid, outJpg) {
 }
 
 /** 批量抓帧：cids = [{cid,label}]，产物 <framesDir>/<cid>.jpg */
-export async function grabFrames(bv, cids, framesDir) {
+export async function grabFrames(bv, cids, framesDir, opts = {}) {
   mkdirSync(framesDir, { recursive: true });
   const map = new Map();
   let ok = 0;
   for (const item of cids) {
     const out = join(framesDir, item.cid + '.jpg');
-    const r = await grabFrame(bv, item.cid, out);
+    const r = await grabFrame(bv, item.cid, out, opts.at ?? 1.0);
     map.set(String(item.cid), r.ok ? out : null);
     if (r.ok) ok++;
-    log({ stage: 'frame', cid: item.cid, state: r.ok ? 'ok' : 'failed', bytes: r.bytes || 0, error: r.error });
+    log({ stage: 'frame', cid: item.cid, state: r.ok ? 'ok' : 'failed', bytes: r.bytes || 0, info: r.info || undefined, error: r.error });
     await sleep(200);
   }
   return { map, ok, total: cids.length };

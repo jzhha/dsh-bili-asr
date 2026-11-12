@@ -60,6 +60,7 @@ node bin/bili-asr.mjs BV159WJ63EMK                   # 互动视频（自动识�
 node bin/bili-asr.mjs BV1xxx --pages 1,3             # 只做指定分P
 node bin/bili-asr.mjs BV1xxx --out ./somewhere       # 换个输出目录
 node bin/bili-asr.mjs BV159WJ63EMK --frames         # 每个节点再抓一帧截图（约 25 KB/张）
+node bin/bili-asr.mjs BV1xxx --frames --at 3        # 截图取第 3 秒（默认 1；会自动避开黑帧）
 ```
 
 产物（默认 `$DSH_HOME/bili-asr/works/<BV>/`）：

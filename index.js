@@ -379,6 +379,7 @@ export function apply(ctx, config = {}) {
       pages: { type: 'string', description: '可选，只做指定分P，如 "1,3"；省略做全部分P', required: false },
       noAsr: { type: 'boolean', description: '可选，只抓结构与音轨、不跑 ASR（互动视频调试用）', required: false },
       frames: { type: 'boolean', description: '可选，给每个分P/节点抓一帧截图（写进 frames/，会在文档里出图）', required: false },
+      at: { type: 'integer', description: '可选，截图取第几秒（默认 1；会自动避开黑帧）', required: false },
     },
     run: (args, cfg) => {
       const bv = bvOf(args.video);
@@ -387,6 +388,7 @@ export function apply(ctx, config = {}) {
       if (args.pages) extra.push('--pages', String(args.pages));
       if (args.noAsr) extra.push('--no-asr');
       if (args.frames) extra.push('--frames');
+      if (args.at) extra.push('--at', String(args.at));
       const { outDir: od } = pathsOf(cfg);
       return startProc(cfg, 'transcribe', CLI, [bv, '--out', od, ...extra], {
         bv, doc: join(od, bv, 'script.md'),
@@ -457,6 +459,7 @@ export function apply(ctx, config = {}) {
             if (args.pages) extra.push('--pages', String(args.pages));
             if (args.noAsr) extra.push('--no-asr');
             if (args.frames) extra.push('--frames');
+            if (args.at) extra.push('--at', String(args.at));
             const { outDir: od } = pathsOf(config);
             sendJson(res, 200, { ok: true, ...startProc(config, 'transcribe', CLI, [bv, '--out', od, ...extra], {
               bv, doc: join(od, bv, 'script.md'),

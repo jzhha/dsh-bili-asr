@@ -58,6 +58,7 @@ node bin/bili-asr.mjs BV159WJ63EMK                   # interactive video (auto-d
 node bin/bili-asr.mjs BV1xxx --pages 1,3             # only the given parts
 node bin/bili-asr.mjs BV1xxx --out ./somewhere       # custom output directory
 node bin/bili-asr.mjs BV159WJ63EMK --frames          # one still per node (~25 KB each)
+node bin/bili-asr.mjs BV1xxx --frames --at 3         # capture at 3s (default 1s; dark frames are skipped automatically)
 ```
 
 Output (default `$DSH_HOME/bili-asr/works/<BV>/`):

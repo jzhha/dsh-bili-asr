@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 - **互动视频节点截图**（`--frames` / `bili_asr_run({ frames: true })` / 面板勾选「抓截图」）：每个分P或剧情节点用 Range 只取视频开头 ~1.2 MB，PyAV 解出 1 秒处一帧存成 `frames/<cid>.jpg`，文档里自动生成「节点截图」一节（`![]` 相对路径）。
 - 依赖新增 Pillow（`frames.py` 存 JPEG 用）；setup 时一并安装。
+- 截图支持 `--at <秒>`（默认 1 秒），并默认**避开黑帧**：从目标时间往后找第一帧亮度 ≥ 18/255 的画面，找不到就取该段最亮的一帧（日志里有 `t=` 与 `fallback=`）。
 
 ### Changed
 - 入口从侧栏底部挪进「设置 → B站转写」。

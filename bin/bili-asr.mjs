@@ -19,7 +19,7 @@ import { buildInteractiveDoc, buildLinearDoc } from './mkdoc.mjs';
 
 const argv = process.argv.slice(2);
 if (!argv.length || argv[0] === '-h' || argv[0] === '--help') {
-  console.log(`用法: node bin/bili-asr.mjs <BV号|链接> [--pages 1,2] [--no-asr] [--out 目录]
+  console.log(`用法: node bin/bili-asr.mjs <BV号|链接> [--pages 1,2] [--no-asr] [--frames [--at 秒]] [--out 目录]
 
 产物: <out>/<BV>/{graph.json,tree.md,script.md} 与 audio/ transcripts/
 --out 省略时写到 ${WORKS}\\<BV>\\`);
@@ -34,6 +34,7 @@ const onlyPages = argOf('--pages', '').split(',').filter(Boolean).map(Number);
 const noAsr = argv.includes('--no-asr');
 const outRoot = argOf('--out', '');
 const wantFrames = argv.includes('--frames');
+const frameAt = Number(argOf('--at', '1')) || 1;
 
 const dir = workDir(bv, outRoot);
 log({ stage: 'start', bv, dir });
@@ -74,7 +75,7 @@ log({ stage: 'targets', count: cids.length });
 // 2.5) 节点截图（--frames）：每个分P/节点抓一帧，写 frames/<cid>.jpg
 let frames = new Map();
 if (wantFrames) {
-  const shot = await grabFrames(bv, cids, join(dir, 'frames'));
+  const shot = await grabFrames(bv, cids, join(dir, 'frames'), { at: frameAt });
   frames = shot.map;
   log({ stage: 'frames-summary', ok: shot.ok, total: shot.total });
 }
