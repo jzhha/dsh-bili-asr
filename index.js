@@ -288,6 +288,9 @@ function docOf(id, offset = 0, limit = 6000) {
   if (job.state === 'failed' && job.error) {
     return { state: 'failed', text: `失败：${job.error.message}\n\n怎么办：${job.error.hint}\n\n（错误码 ${job.error.code}）` };
   }
+  if (job.state === 'interrupted') {
+    return { state: 'interrupted', text: job.note || '上次运行在客户端退出时中断了；重新发起即可，已下载的音轨与已转写的片段会复用。' };
+  }
   if (!job.doc || !existsSync(job.doc)) return { state: job.state, error: '没有文档: ' + (job.doc || '(setup 任务)') };
   const text = readFileSync(job.doc, 'utf8');
   const start = Math.max(0, Math.min(offset, text.length));
@@ -407,7 +410,7 @@ export function apply(ctx, config = {}) {
       if (args.pages) extra.push('--pages', String(args.pages));
       if (args.noAsr) extra.push('--no-asr');
       if (args.frames) extra.push('--frames');
-      if (args.at) extra.push('--at', String(args.at));
+      if (typeof args.at === 'number' || (typeof args.at === 'string' && args.at !== '')) extra.push('--at', String(args.at));
       const { outDir: od } = pathsOf(cfg);
       return startProc(cfg, 'transcribe', CLI, [bv, '--out', od, ...extra], {
         bv, doc: join(od, bv, 'script.md'),
@@ -488,7 +491,7 @@ export function apply(ctx, config = {}) {
             if (args.pages) extra.push('--pages', String(args.pages));
             if (args.noAsr) extra.push('--no-asr');
             if (args.frames) extra.push('--frames');
-            if (args.at) extra.push('--at', String(args.at));
+            if (typeof args.at === 'number' || (typeof args.at === 'string' && args.at !== '')) extra.push('--at', String(args.at));
             const { outDir: od } = pathsOf(config);
             sendJson(res, 200, { ok: true, ...startProc(config, 'transcribe', CLI, [bv, '--out', od, ...extra], {
               bv, doc: join(od, bv, 'script.md'),
@@ -501,7 +504,9 @@ export function apply(ctx, config = {}) {
             try { args = JSON.parse(body || '{}'); } catch { /* 允许空 body */ }
             const id = args.id || url.searchParams.get('id') || '';
             if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
-            sendJson(res, 200, { ok: true, ...cancelJob(id) });
+            const r = cancelJob(id);
+            if (r.error) { sendJson(res, 400, { ok: false, ...r }); return; }
+            sendJson(res, 200, { ok: true, ...r });
             return;
           }
           if (sub === '/delete' && req.method === 'POST') {

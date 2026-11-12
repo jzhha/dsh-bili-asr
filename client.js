@@ -22,6 +22,8 @@ window.__ModuleLoader__.load({
       refresh: '刷新',
       empty: '还没有任务',
       running: '转写中',
+      queued: '排队中',
+      canceled: '已取消',
       done: '完成',
       failed: '失败',
       interrupted: '已中断',
@@ -50,6 +52,8 @@ window.__ModuleLoader__.load({
       refresh: 'Refresh',
       empty: 'No jobs yet',
       running: 'running',
+      queued: 'queued',
+      canceled: 'canceled',
       done: 'done',
       failed: 'failed',
       interrupted: 'interrupted',
@@ -136,6 +140,7 @@ window.__ModuleLoader__.load({
       const [menuOpen, setMenuOpen] = useState(false);
       const [sel, setSel] = useState(null);
       const [doc, setDoc] = useState(null);
+      const [selState, setSelState] = useState('');
       const [note, setNote] = useState('');
 
       const load = useCallback(async () => {
@@ -154,9 +159,12 @@ window.__ModuleLoader__.load({
       }, [jobs, load]);
 
       useEffect(() => {
-        if (!sel) { setDoc(null); return; }
+        if (!sel) { setDoc(null); setSelState(''); return; }
         let alive = true;
         setDoc({ loading: true });
+        jget('/job?id=' + encodeURIComponent(sel))
+          .then((r) => { if (alive && r && r.ok && r.job) setSelState(r.job.state || ''); })
+          .catch(() => {});
         jget('/doc?id=' + encodeURIComponent(sel) + '&limit=40000')
           .then((r) => { if (alive) setDoc(r); })
           .catch((e) => { if (alive) setDoc({ error: String((e && e.message) || e) }); });
@@ -211,10 +219,14 @@ window.__ModuleLoader__.load({
         await load();
       };
 
-      const selJob = jobs.find((x) => x.id === sel);
-      const delable = !!(selJob && !['running', 'queued'].includes(selJob.state));
+      // 以宿主查询到的状态为准：列表只显示最近 10 条，旧任务被选中后也能正确判断
+      const delable = ['done', 'failed', 'canceled', 'interrupted'].includes(selState);
+      const cancellable = ['running', 'queued'].includes(selState);
 
-      const stateText = (s) => (s === 'running' ? t('running') : s === 'failed' ? t('failed') : s === 'interrupted' ? t('interrupted') : t('done'));
+      const STATE_KEY = { running: 'running', queued: 'queued', done: 'done', failed: 'failed', canceled: 'canceled', interrupted: 'interrupted' };
+      useEffect(() => { if (!delable) { setMenuOpen(false); setConfirming(''); } }, [delable]);
+
+      const stateText = (s) => { const key = STATE_KEY[s] || 'done'; const v = t(key); return v && v !== key ? v : key; };
 
       return h('div', { className: 'basr-root' },
         h('div', { className: 'basr-head' },
@@ -267,7 +279,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'basr-btn', disabled: !(doc && doc.doc), onClick: copyPath }, t('copy')),
               h('button', {
                 className: 'basr-btn',
-                disabled: !(jobs.find((x) => x.id === sel) && ['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
+                disabled: !cancellable,
                 onClick: cancel,
               }, t('cancel')),
               h('div', { className: 'basr-menu-wrap' },

@@ -75,6 +75,7 @@ log({ stage: 'targets', count: cids.length });
 // 2.5) 节点截图（--frames）：每个分P/节点抓一帧，写 frames/<cid>.jpg
 let frames = new Map();
 if (wantFrames) {
+  if (!existsSync(PYTHON)) die('SETUP_REQUIRED', `没找到 Python 环境：${PYTHON}`, '抓截图要用 venv 里的 PyAV + Pillow：先跑 bili_asr_setup。');
   const shot = await grabFrames(bv, cids, join(dir, 'frames'), { at: frameAt });
   frames = shot.map;
   log({ stage: 'frames-summary', ok: shot.ok, total: shot.total });
