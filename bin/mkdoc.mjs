@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const HALLUCINATION = /^字幕|字幕由|字幕by|字幕制作|请点赞|订阅|关注我/i;
+const HALLUCINATION = /^字幕|字幕由|字幕by|字幕制作|请点赞|订阅|关注我|请用简体中文|以下是普通话/i;
 const clean = (s) => {
   const t = (s || '').trim();
   return HALLUCINATION.test(t) ? '' : t;

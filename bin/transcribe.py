@@ -29,11 +29,34 @@ def decode(path, sr=16000):
     return np.concatenate(chunks).astype(np.float32) if chunks else np.zeros(0, dtype=np.float32)
 
 
+PROMPT_ECHO = (
+    "以下是普通话内容，请用简体中文转写。",
+    "请用简体中文转写",
+    "以下是普通话内容",
+    "请用简体中文",
+)
+
+
+def is_prompt_echo(text):
+    """Whisper 在静音片段会把 initial_prompt 原样吐出来，这种段子不算台词。"""
+    s = (text or "").strip().strip("。．.，, ").strip()
+    if not s:
+        return False
+    for echo in PROMPT_ECHO:
+        if s == echo.strip("。．.，, ").strip():
+            return True
+    return False
+
+
 def run(model, audio, vad):
     segs, _ = model.transcribe(audio, language="zh", vad_filter=vad, beam_size=5,
                                no_speech_threshold=0.9, condition_on_previous_text=False,
                                initial_prompt="以下是普通话内容，请用简体中文转写。")
-    out = [{"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()} for s in segs]
+    out = [
+        {"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()}
+        for s in segs
+        if not is_prompt_echo(s.text)
+    ]
     return out, "".join(s["text"] for s in out).strip()
 
 
