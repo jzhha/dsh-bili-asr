@@ -6,7 +6,7 @@
 //
 // 不裸 import @deepseek-ai/*：桌面版 profile 是 autoInstallPeers:false，
 // 拿不到 defineTool 就退回本地等价实现（与 dsh-bili-scroll 同一套策略）。
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -213,17 +213,25 @@ function cancelJob(id) {
 /** 环境自检：跑 bin/doctor.mjs，解析最后一段 JSON */
 function runDoctor(config) {
   const { dataDir } = pathsOf(config);
-  const r = spawnSync(process.execPath, [join(PKG, 'bin', 'doctor.mjs')], {
-    encoding: 'utf8',
-    timeout: 120000,
-    env: childEnv(config, dataDir),
+  return new Promise((resolve) => {
+    let out = '';
+    let err = '';
+    const child = spawn(process.execPath, [join(PKG, 'bin', 'doctor.mjs')], {
+      env: childEnv(config, dataDir),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    child.stdout.on('data', (d) => { out += d.toString('utf8'); });
+    child.stderr.on('data', (d) => { err += d.toString('utf8'); });
+    child.on('exit', () => {
+      const start = out.indexOf('{');
+      if (start >= 0) {
+        try { resolve(JSON.parse(out.slice(start))); return; } catch { /* 落到下面 */ }
+      }
+      resolve({ ok: false, error: 'doctor 没有返回可解析的结果', raw: (err || out).slice(-400) });
+    });
+    child.on('error', (e) => resolve({ ok: false, error: e.message }));
   });
-  const out = (r.stdout || '').trim();
-  const start = out.indexOf('{');
-  if (start >= 0) {
-    try { return JSON.parse(out.slice(start)); } catch { /* 落到下面 */ }
-  }
-  return { ok: false, error: 'doctor 没有返回可解析的结果', raw: (r.stderr || out || '').slice(-400) };
 }
 
 function rebuildJob(config, id, opts = {}) {
@@ -400,7 +408,7 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => [{ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v, null, 2) }],
     },
     async execute(args) {
-      try { return JSON.stringify(spec.run(args, config), null, 2); }
+      try { return JSON.stringify(await spec.run(args, config), null, 2); }
       catch (e) { return JSON.stringify({ error: String(e?.message || e) }); }
     },
     ...spec,
@@ -467,7 +475,7 @@ export function apply(ctx, config = {}) {
     name: 'bili_asr_doctor',
     description: '环境自检：检查 Python、faster-whisper/av/Pillow 依赖、Whisper 模型文件、数据目录可写、磁盘空间与 B站接口可达。返回逐项 ok/detail/hint。',
     parameters: {},
-    run: (_args, cfg) => runDoctor(cfg),
+    run: async (_args, cfg) => await runDoctor(cfg),
   });
 
   tool({
@@ -556,7 +564,7 @@ export function apply(ctx, config = {}) {
             return;
           }
           if (sub === '/doctor' && (req.method === 'POST' || req.method === 'GET')) {
-            sendJson(res, 200, { ok: true, report: runDoctor(config) });
+            sendJson(res, 200, { ok: true, report: await runDoctor(config) });
             return;
           }
           if (sub === '/rebuild' && req.method === 'POST') {
