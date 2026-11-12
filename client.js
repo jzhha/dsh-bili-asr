@@ -90,6 +90,15 @@ window.__ModuleLoader__.load({
 .basr-entry svg{flex:none;opacity:.85}
 .basr-check{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.85;white-space:nowrap;cursor:pointer}
 .basr-opts{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.basr-menu-wrap{position:relative;display:inline-block}
+.basr-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:190px;padding:6px;border-radius:10px;z-index:30;
+  background:var(--dsw-alias-bg,#202020);border:1px solid var(--dsw-alias-border,rgba(127,127,127,.3));
+  box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.basr-menu-item{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;opacity:.92}
+.basr-menu-item:hover{background:rgba(127,127,127,.16);opacity:1}
+.basr-menu-item.danger{color:#e5534b}
+.basr-menu-tip{padding:6px 10px 2px;font-size:11px;opacity:.5;white-space:nowrap}
+.basr-menu-backdrop{position:fixed;inset:0;z-index:20;background:transparent}
 .basr-select{padding:3px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border,rgba(127,127,127,.28));background:transparent;color:inherit;font:inherit;font-size:12px}
 `;
 
@@ -121,6 +130,7 @@ window.__ModuleLoader__.load({
       const [wantFrames, setWantFrames] = useState(false);
       const [frameAt, setFrameAt] = useState('1');
       const [confirming, setConfirming] = useState('');
+      const [menuOpen, setMenuOpen] = useState(false);
       const [sel, setSel] = useState(null);
       const [doc, setDoc] = useState(null);
       const [note, setNote] = useState('');
@@ -198,6 +208,9 @@ window.__ModuleLoader__.load({
         await load();
       };
 
+      const selJob = jobs.find((x) => x.id === sel);
+      const delable = !!(selJob && !['running', 'queued'].includes(selJob.state));
+
       const stateText = (s) => (s === 'running' ? t('running') : s === 'failed' ? t('failed') : s === 'interrupted' ? t('interrupted') : t('done'));
 
       return h('div', { className: 'basr-root' },
@@ -254,16 +267,25 @@ window.__ModuleLoader__.load({
                 disabled: !(jobs.find((x) => x.id === sel) && ['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
                 onClick: cancel,
               }, t('cancel')),
-              h('button', {
-                className: 'basr-btn',
-                disabled: !(jobs.find((x) => x.id === sel) && !['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
-                onClick: () => { if (confirming === 'del') delJob(false); else setConfirming('del'); },
-              }, confirming === 'del' ? t('confirmDel') : t('del')),
-              h('button', {
-                className: 'basr-btn',
-                disabled: !(jobs.find((x) => x.id === sel) && !['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
-                onClick: () => { if (confirming === 'files') delJob(true); else setConfirming('files'); },
-              }, confirming === 'files' ? t('confirmDel') : t('delFiles'))
+              h('div', { className: 'basr-menu-wrap' },
+                h('button', {
+                  className: 'basr-btn',
+                  disabled: delable,
+                  onClick: () => { setMenuOpen(!menuOpen); setConfirming(''); },
+                }, (menuOpen ? '▴ ' : '▾ ') + t('del')),
+                menuOpen && delable ? h('div', { className: 'basr-menu' },
+                  h('div', {
+                    className: 'basr-menu-item' + (confirming === 'record' ? ' danger' : ''),
+                    onClick: () => { if (confirming === 'record') delJob(false); else setConfirming('record'); },
+                  }, confirming === 'record' ? '再点一次确认' : '只删记录（保留产物）'),
+                  h('div', {
+                    className: 'basr-menu-item danger',
+                    onClick: () => { if (confirming === 'files') delJob(true); else setConfirming('files'); },
+                  }, confirming === 'files' ? '再点一次确认' : '连产物一起删除'),
+                  h('div', { className: 'basr-menu-tip' }, '产物 = works/<BV>/，删了不可恢复')
+                ) : null,
+                menuOpen ? h('div', { className: 'basr-menu-backdrop', onClick: () => { setMenuOpen(false); setConfirming(''); } }) : null
+              )
             ),
             h('pre', { className: 'basr-pre' },
               !sel ? t('noDoc') :
