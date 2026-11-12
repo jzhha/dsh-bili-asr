@@ -28,7 +28,12 @@ window.__ModuleLoader__.load({
       doc: '文档',
       copy: '复制路径',
       cancel: '取消任务',
-      frames: '抓截图',
+      frames: '节点截图',
+      del: '删除',
+      delFiles: '连产物一起删',
+      confirmDel: '确认删除？',
+      frameHint: '每个分P/节点抓一帧（约 25 KB/张，自动跳过黑帧）',
+      frameAt: '取第几秒',
       copied: '已复制',
       loading: '读取中…',
       noDoc: '还没有文档',
@@ -84,6 +89,8 @@ window.__ModuleLoader__.load({
 .basr-entry.rail{width:36px;height:36px;justify-content:center;padding:0}
 .basr-entry svg{flex:none;opacity:.85}
 .basr-check{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.85;white-space:nowrap;cursor:pointer}
+.basr-opts{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.basr-select{padding:3px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border,rgba(127,127,127,.28));background:transparent;color:inherit;font:inherit;font-size:12px}
 `;
 
     let cssInstalled = false;
@@ -112,6 +119,8 @@ window.__ModuleLoader__.load({
       const [input, setInput] = useState('');
       const [busy, setBusy] = useState(false);
       const [wantFrames, setWantFrames] = useState(false);
+      const [frameAt, setFrameAt] = useState('1');
+      const [confirming, setConfirming] = useState('');
       const [sel, setSel] = useState(null);
       const [doc, setDoc] = useState(null);
       const [note, setNote] = useState('');
@@ -146,7 +155,7 @@ window.__ModuleLoader__.load({
         if (!video || busy) return;
         setBusy(true); setNote('');
         try {
-          const r = await jpost('/run', { video, frames: wantFrames });
+          const r = await jpost('/run', { video, frames: wantFrames, at: wantFrames ? Number(frameAt) : undefined });
           if (r && r.ok) { setSel(r.id); setInput(''); load(); }
           else setNote((r && (r.error || r.hint)) || 'run failed');
         } catch (e) { setNote(String((e && e.message) || e)); }
@@ -168,6 +177,16 @@ window.__ModuleLoader__.load({
         if (!p) return;
         try { await navigator.clipboard.writeText(p); setNote(t('copied')); }
         catch { setNote(p); }
+      };
+
+      const delJob = async (withFiles) => {
+        if (!sel) return;
+        try {
+          const r = await jpost('/delete', { id: sel, files: withFiles });
+          setNote(r && r.ok ? (withFiles ? '已删除任务与产物目录' : '已删除任务记录') : ((r && r.error) || '删除失败'));
+          if (r && r.ok) { setSel(null); setConfirming(''); }
+        } catch (e) { setNote(String((e && e.message) || e)); }
+        await load();
       };
 
       const cancel = async () => {
@@ -192,13 +211,23 @@ window.__ModuleLoader__.load({
             onChange: (e) => setInput(e.target.value),
             onKeyDown: (e) => { if (e.key === 'Enter') run(); },
           }),
-          h('label', { className: 'basr-check' },
-            h('input', { type: 'checkbox', checked: wantFrames, onChange: (e) => setWantFrames(e.target.checked) }),
-            h('span', null, t('frames'))
-          ),
           h('button', { className: 'basr-btn', disabled: busy, onClick: run }, busy ? '…' : t('run')),
           h('button', { className: 'basr-btn', disabled: busy, onClick: setup }, t('setup')),
           h('button', { className: 'basr-btn', onClick: load }, t('refresh'))
+        ),
+        h('div', { className: 'basr-opts' },
+          h('label', { className: 'basr-check', title: t('frameHint') },
+            h('input', { type: 'checkbox', checked: wantFrames, onChange: (e) => setWantFrames(e.target.checked) }),
+            h('span', null, t('frames'))
+          ),
+          wantFrames ? h('label', { className: 'basr-check' },
+            h('span', { className: 'basr-sub' }, t('frameAt')),
+            h('select', {
+              className: 'basr-select', value: frameAt,
+              onChange: (e) => setFrameAt(e.target.value),
+            }, ['0', '1', '3', '5', '10'].map((v) => h('option', { key: v, value: v }, v + 's')))
+          ) : null,
+          h('span', { className: 'basr-sub' }, wantFrames ? t('frameHint') : '')
         ),
         note ? h('div', { className: 'basr-sub' }, note) : null,
         h('div', { className: 'basr-body' },
@@ -224,7 +253,17 @@ window.__ModuleLoader__.load({
                 className: 'basr-btn',
                 disabled: !(jobs.find((x) => x.id === sel) && ['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
                 onClick: cancel,
-              }, t('cancel'))
+              }, t('cancel')),
+              h('button', {
+                className: 'basr-btn',
+                disabled: !(jobs.find((x) => x.id === sel) && !['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
+                onClick: () => { if (confirming === 'del') delJob(false); else setConfirming('del'); },
+              }, confirming === 'del' ? t('confirmDel') : t('del')),
+              h('button', {
+                className: 'basr-btn',
+                disabled: !(jobs.find((x) => x.id === sel) && !['running', 'queued'].includes(jobs.find((x) => x.id === sel).state)),
+                onClick: () => { if (confirming === 'files') delJob(true); else setConfirming('files'); },
+              }, confirming === 'files' ? t('confirmDel') : t('delFiles'))
             ),
             h('pre', { className: 'basr-pre' },
               !sel ? t('noDoc') :

@@ -7,7 +7,7 @@
 // 不裸 import @deepseek-ai/*：桌面版 profile 是 autoInstallPeers:false，
 // 拿不到 defineTool 就退回本地等价实现（与 dsh-bili-scroll 同一套策略）。
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
@@ -90,7 +90,7 @@ function startProc(config, kind, scriptPath, args, extra = {}) {
   pump();
   const ahead = job.state === 'queued' ? queue.length : 0;
   return {
-    id, kind, state: job.state, position: job.state === 'queued' ? ahead : 0,
+    id, kind, bv: extra.bv || '', state: job.state, position: job.state === 'queued' ? ahead : 0,
     dataDir, doc: job.doc || undefined,
     hint: (job.state === 'queued' ? `排队中（前面还有 ${ahead} 个任务）；` : '') +
       (kind === 'setup' ? '用 bili_asr_status 看安装进度' : '用 bili_asr_status 查进度，完成后用 bili_asr_doc 读文档'),
@@ -208,6 +208,25 @@ function cancelJob(id) {
   }
   persist(job.outDir);
   return { ok: true, id, state: 'canceled', killed: !!pid };
+}
+
+/** 删除任务记录；files=true 时连 works/<BV>/ 一起删。运行中的必须先取消。 */
+function deleteJob(id, opts = {}) {
+  const job = jobs.get(id);
+  if (!job) return { error: '没有这个任务: ' + id };
+  if (job.state === 'running' || job.state === 'queued') {
+    return { error: '任务还在跑/排队：先取消，再删除' };
+  }
+  jobs.delete(id);
+  persist(job.outDir);
+  let removedFiles = false;
+  if (opts.files && job.bv) {
+    try {
+      rmSync(join(job.outDir, job.bv), { recursive: true, force: true });
+      removedFiles = true;
+    } catch { /* 目录可能已被删 */ }
+  }
+  return { ok: true, id, bv: job.bv, removedFiles };
 }
 
 function secondsOf(job) {
@@ -404,6 +423,16 @@ export function apply(ctx, config = {}) {
   });
 
   tool({
+    name: 'bili_asr_delete',
+    description: '删除一个已结束的 bili-asr 任务记录（运行中/排队中的要先取消）。files=true 时把 works/<BV>/ 产物目录一并删除，不可恢复。',
+    parameters: {
+      id: { type: 'string', description: '任务 id', required: true },
+      files: { type: 'boolean', description: '可选，同时删除产物目录', required: false },
+    },
+    run: (args) => deleteJob(args.id, { files: !!args.files }),
+  });
+
+  tool({
     name: 'bili_asr_status',
     description: '查 bili-asr 任务进度：给 id 返回状态与最近日志；不给 id 返回最近 10 个任务。',
     parameters: { id: { type: 'string', description: '任务 id；省略则列出最近任务', required: false } },
@@ -473,6 +502,16 @@ export function apply(ctx, config = {}) {
             const id = args.id || url.searchParams.get('id') || '';
             if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
             sendJson(res, 200, { ok: true, ...cancelJob(id) });
+            return;
+          }
+          if (sub === '/delete' && req.method === 'POST') {
+            const body = await readBody(req);
+            let args = {};
+            try { args = JSON.parse(body || '{}'); } catch { /* 空 body */ }
+            const id = args.id || url.searchParams.get('id') || '';
+            if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
+            const r = deleteJob(id, { files: !!args.files });
+            sendJson(res, r.error ? 400 : 200, r.error ? { ok: false, ...r } : r);
             return;
           }
           if (sub === '/setup' && req.method === 'POST') {

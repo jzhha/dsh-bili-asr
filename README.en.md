@@ -44,6 +44,7 @@ bili_asr_setup({ pipIndex: "https://pypi.org/simple", hfEndpoint: "https://huggi
 | `bili_asr_run({ video, pages?, noAsr? })` | Start a transcription job, returns `taskId` immediately |
 | `bili_asr_status({ id? })` | Progress + recent log lines; omit `id` to list recent jobs |
 | `bili_asr_cancel({ id })` | Cancel a job: drops queued ones, kills the node → python process tree for running ones |
+| `bili_asr_delete({ id, files? })` | Delete a finished job record; `files: true` also removes `works/<BV>/` |
 | `bili_asr_doc({ id, offset?, limit? })` | Page through `script.md` (follow `next` while non-null) |
 | `bili_asr_setup({ pipIndex?, hfEndpoint? })` | One-time environment setup |
 
