@@ -5,6 +5,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) plug
 - **Regular videos / multi-part** → per-part transcript with timestamps
 - **Interactive videos** (`is_stein_gate=1`) → walks Bilibili's *stein* story graph and produces **a branch tree with each node's lines and every ending**
 - **Node stills** (`--frames`): one frame per part/node into `frames/`, embedded in the document
+- **Global audio cache**: tracks land in `<dataDir>/cache/audio/` and are hard-linked into works, so re-runs never re-download
 - **Subtitle tracks first**: every part/node probes `/x/player/v2`; when a track exists the subtitles are used directly and neither audio download nor ASR runs (anonymous requests rarely get one — set `BILI_SESSDATA` to supply a cookie)
 - **Both halves**: agent tools in a session, plus a **Settings → "Bili ASR"** panel to start jobs, watch progress and read documents
 

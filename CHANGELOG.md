@@ -19,6 +19,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **SRT / VTT 导出**：`--srt` / `bili_asr_run({ srt: true })` / 面板「导出字幕」，写到 `subtitles/`（每 cid 一份；多分P额外合并一份 `<BV>.srt`）。
 - **重建文档**：`--rebuild` / `bili_asr_rebuild` / `POST /api/bili-asr/rebuild` / 面板「重建文档」，只读 `transcripts/` + `graph.json` + `meta.json` 重出 `script.md`，不联网、不重跑 ASR（实测 0 秒）。
 - 每次运行写 `meta.json`（标题、分P、graph_version），供重建使用。
+- **面板选分P**：选项行加「分P」输入（如 `1,3`）→ 透传 `--pages`，留空=全部分P。
+- **音频全局缓存**：音轨先落 `<dataDir>/cache/audio/<cid>.m4s`，sworks/audio 用硬链接挂过去；同一视频重转不再下载（日志里 `hits` 就是命中数）。
 
 ## [0.5.0] - 2026-11-12
 
