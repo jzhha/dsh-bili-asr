@@ -6,20 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Planned
-- Cancel a running job from the panel
 - Per-part selection in the panel (`--pages` equivalent)
 - Optional smaller Whisper model (`tiny`/`base`) for faster CPU runs
+- `bili_asr_doctor` environment self-check
+- Global audio cache keyed by cid
+- Export SRT / VTT
 
 ## [0.5.0] - 2026-11-12
 
 ### Added
-- **删除**：`bili_asr_delete` 工具 / `POST /api/bili-asr/delete` / 面板「删除」「连产物一起删」两个按钮（两步确认）；运行中/排队中的任务必须先取消。`bili_asr_run` 的返回值补上 `bv`。
-- **互动视频节点截图**（`--frames` / `bili_asr_run({ frames: true })` / 面板勾选「抓截图」）：每个分P或剧情节点用 Range 只取视频开头 ~1.2 MB，PyAV 解出 1 秒处一帧存成 `frames/<cid>.jpg`，文档里自动生成「节点截图」一节（`![]` 相对路径）。
+- **删除**：`bili_asr_delete` 工具 / `POST /api/bili-asr/delete` / 面板「删除 ▾」展开栏（只删记录 / 连产物一起删，两步确认）；运行中/排队中的任务必须先取消。`bili_asr_run` 的返回值补上 `bv`。
+- **互动视频节点截图**（`--frames` / `bili_asr_run({ frames: true })` / 面板勾选「节点截图」）：每个分P或剧情节点用 Range 只取视频开头 ~1.2 MB，PyAV 解出一帧存成 `frames/<cid>.jpg`，文档里自动生成「节点截图」一节（`![]` 相对路径）。
 - 依赖新增 Pillow（`frames.py` 存 JPEG 用）；setup 时一并安装。
 - 截图支持 `--at <秒>`（默认 1 秒），并默认**避开黑帧**：从目标时间往后找第一帧亮度 ≥ 18/255 的画面，找不到就取该段最亮的一帧（日志里有 `t=` 与 `fallback=`）。
 
 ### Changed
 - 入口从侧栏底部挪进「设置 → B站转写」。
+- 面板布局重排：按钮不再换行、路径单独省略、列表/文档区 grid 分栏且各自限高滚动。
+
+### Fixed
+- 静音节点上 Whisper 会把 `initial_prompt` 原样吐成台词（「请用简体中文转写。」），以前被当成正文写进文档；现在转写层与文档层都会过滤掉这种回声。
+
 
 ## [0.4.0] - 2026-11-11
 
