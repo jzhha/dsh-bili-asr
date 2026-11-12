@@ -252,7 +252,7 @@ window.__ModuleLoader__.load({
               jobs.map((j) => h('div', {
                 key: j.id,
                 className: 'basr-item' + (j.id === sel ? ' on' : ''),
-                onClick: () => setSel(j.id),
+                onClick: () => { setSel(j.id); setMenuOpen(false); setConfirming(''); },
               },
                 h('span', { className: 'basr-name' }, (j.title || j.bv) + ''),
                 h('span', { className: 'basr-row' },
@@ -273,7 +273,7 @@ window.__ModuleLoader__.load({
               h('div', { className: 'basr-menu-wrap' },
                 h('button', {
                   className: 'basr-btn',
-                  disabled: delable,
+                  disabled: !delable,
                   onClick: () => { setMenuOpen(!menuOpen); setConfirming(''); },
                 }, (menuOpen ? '▴ ' : '▾ ') + t('del')),
                 menuOpen && delable ? h('div', { className: 'basr-menu' },
