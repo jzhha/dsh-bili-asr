@@ -46,6 +46,8 @@ bili_asr_setup({ pipIndex: "https://pypi.tuna.tsinghua.edu.cn/simple", hfEndpoin
 | `bili_asr_run({ video, pages?, noAsr?, frames?, at? })` | 起一个转写任务，立即返回 `taskId`；`frames: true` 抓节点截图，`at` 指定取第几秒 |
 | `bili_asr_status({ id? })` | 查进度与最近日志；不传 id 列出最近任务 |
 | `bili_asr_cancel({ id })` | 取消任务：排队中的直接出队，运行中的杀掉 node → python 进程树 |
+| `bili_asr_doctor()` | 环境自检：Python / 依赖 / 模型 / 数据目录 / 磁盘 / B站接口，逐项给结论 |
+| `bili_asr_rebuild({ id, srt? })` | 只重建文档：用已有 transcripts + 元数据重出 script.md，不联网 |
 | `bili_asr_delete({ id, files? })` | 删除已结束的任务记录；`files: true` 连 `works/<BV>/` 产物目录一起删 |
 | `bili_asr_doc({ id, offset?, limit? })` | 分页读 `script.md`（`next` 非空时继续读） |
 | `bili_asr_setup({ pipIndex?, hfEndpoint? })` | 一次性装环境 |
@@ -62,6 +64,9 @@ node bin/bili-asr.mjs BV1xxx --pages 1,3             # 只做指定分P
 node bin/bili-asr.mjs BV1xxx --out ./somewhere       # 换个输出目录
 node bin/bili-asr.mjs BV159WJ63EMK --frames         # 每个节点再抓一帧截图（约 25 KB/张）
 node bin/bili-asr.mjs BV1xxx --frames --at 3        # 截图取第 3 秒（默认 1；会自动避开黑帧）
+node bin/bili-asr.mjs BV1xxx --srt                  # 额外导出 SRT / VTT 到 subtitles/
+node bin/bili-asr.mjs BV1xxx --rebuild              # 只用已有产物重建文档（不联网）
+node bin/doctor.mjs                                 # 环境自检
 ```
 
 产物（默认 `$DSH_HOME/bili-asr/works/<BV>/`）：

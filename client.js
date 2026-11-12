@@ -36,6 +36,12 @@ window.__ModuleLoader__.load({
       confirmDel: '确认删除？',
       frameHint: '每个分P/节点抓一帧（约 25 KB/张，自动跳过黑帧）',
       frameAt: '取第几秒',
+      srt: '导出字幕',
+      parts: '分P',
+      partsHint: '如 1,3；留空=全部分P',
+      rebuild: '重建文档',
+      doctor: '环境自检',
+      doctorBusy: '自检中…',
       copied: '已复制',
       loading: '读取中…',
       noDoc: '还没有文档',
@@ -64,6 +70,18 @@ window.__ModuleLoader__.load({
       copied: 'Copied',
       loading: 'Loading…',
       noDoc: 'No document yet',
+      frameAt: 'At',
+      frameHint: 'One still per part/node (~25 KB, dark frames skipped)',
+      srt: 'SRT',
+      parts: 'Parts',
+      partsHint: 'e.g. 1,3 — empty means all parts',
+      rebuild: 'Rebuild',
+      doctor: 'Doctor',
+      doctorBusy: 'Checking…',
+      del: 'Delete',
+      delFiles: 'with files',
+      confirmDel: 'Confirm?',
+      interrupted: 'interrupted',
       err: 'Error',
     };
 
@@ -105,6 +123,7 @@ window.__ModuleLoader__.load({
 .basr-menu-item.danger{color:#e5534b}
 .basr-menu-tip{padding:6px 10px 2px;font-size:11px;opacity:.5;white-space:nowrap}
 .basr-menu-backdrop{position:fixed;inset:0;z-index:20;background:transparent}
+.basr-parts{width:64px;padding:3px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border,rgba(127,127,127,.28));background:transparent;color:inherit;font:inherit;font-size:12px}
 .basr-select{padding:3px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border,rgba(127,127,127,.28));background:transparent;color:inherit;font:inherit;font-size:12px}
 @media (max-width:760px){.basr-body{grid-template-columns:1fr}.basr-list{max-height:30vh}}
 `;
@@ -138,6 +157,9 @@ window.__ModuleLoader__.load({
       const [frameAt, setFrameAt] = useState('1');
       const [confirming, setConfirming] = useState('');
       const [menuOpen, setMenuOpen] = useState(false);
+      const [wantSrt, setWantSrt] = useState(false);
+      const [parts, setParts] = useState('');
+      const [doctorBusy, setDoctorBusy] = useState(false);
       const [sel, setSel] = useState(null);
       const [doc, setDoc] = useState(null);
       const [selState, setSelState] = useState('');
@@ -176,7 +198,7 @@ window.__ModuleLoader__.load({
         if (!video || busy) return;
         setBusy(true); setNote('');
         try {
-          const r = await jpost('/run', { video, frames: wantFrames, at: wantFrames ? Number(frameAt) : undefined });
+          const r = await jpost('/run', { video, frames: wantFrames, at: wantFrames ? Number(frameAt) : undefined, srt: wantSrt, pages: parts.trim() || undefined });
           if (r && r.ok) { setSel(r.id); setInput(''); load(); }
           else setNote((r && (r.error || r.hint)) || 'run failed');
         } catch (e) { setNote(String((e && e.message) || e)); }
@@ -198,6 +220,34 @@ window.__ModuleLoader__.load({
         if (!p) return;
         try { await navigator.clipboard.writeText(p); setNote(t('copied')); }
         catch { setNote(p); }
+      };
+
+      const runDoctor = async () => {
+        if (doctorBusy) return;
+        setDoctorBusy(true);
+        setDoc({ loading: true });
+        try {
+          const r = await jpost('/doctor', {});
+          const rep = r && r.report;
+          if (!rep) { setDoc({ error: (r && r.error) || '自检失败' }); return; }
+          const lines = [
+            (rep.ok ? '✅ 环境正常' : '⚠️ 有问题需要处理'),
+            'home: ' + (rep.home || ''),
+            '',
+            ...(rep.checks || []).map((c) => (c.ok ? '✅ ' : '❌ ') + c.name + '：' + (c.detail || '') + (c.ok || !c.hint ? '' : '\n    → ' + c.hint)),
+          ];
+          setDoc({ text: lines.join('\n') });
+        } catch (e) { setDoc({ error: String((e && e.message) || e) }); }
+        setDoctorBusy(false);
+      };
+
+      const rebuildDoc = async () => {
+        if (!sel) return;
+        try {
+          const r = await jpost('/rebuild', { id: sel, srt: wantSrt });
+          if (r && r.ok) { setNote('正在重建文档…'); if (r.id) setSel(r.id); load(); }
+          else setNote((r && r.error) || '重建失败');
+        } catch (e) { setNote(String((e && e.message) || e)); }
       };
 
       const delJob = async (withFiles) => {
@@ -255,6 +305,17 @@ window.__ModuleLoader__.load({
               onChange: (e) => setFrameAt(e.target.value),
             }, ['0', '1', '3', '5', '10'].map((v) => h('option', { key: v, value: v }, v + 's')))
           ) : null,
+          h('label', { className: 'basr-check' },
+            h('input', { type: 'checkbox', checked: wantSrt, onChange: (e) => setWantSrt(e.target.checked) }),
+            h('span', null, t('srt'))
+          ),
+          h('label', { className: 'basr-check', title: t('partsHint') },
+            h('span', { className: 'basr-sub' }, t('parts')),
+            h('input', {
+              className: 'basr-parts', value: parts, placeholder: '1,3',
+              onChange: (e) => setParts(e.target.value.replace(/[^0-9,]/g, '')),
+            })
+          ),
           h('span', { className: 'basr-sub' }, wantFrames ? t('frameHint') : '')
         ),
         note ? h('div', { className: 'basr-sub' }, note) : null,
@@ -282,6 +343,8 @@ window.__ModuleLoader__.load({
                 disabled: !cancellable,
                 onClick: cancel,
               }, t('cancel')),
+              h('button', { className: 'basr-btn', disabled: !delable, onClick: rebuildDoc }, t('rebuild')),
+              h('button', { className: 'basr-btn', disabled: doctorBusy, onClick: runDoctor }, doctorBusy ? t('doctorBusy') : t('doctor')),
               h('div', { className: 'basr-menu-wrap' },
                 h('button', {
                   className: 'basr-btn',

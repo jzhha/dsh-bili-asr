@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Global audio cache keyed by cid
 - Export SRT / VTT
 
+## [0.6.0] - 2026-11-12
+
+### Added
+- **环境自检**：`bili_asr_doctor` 工具 / `POST /api/bili-asr/doctor` / 面板「环境自检」按钮，逐项检查 Python、faster-whisper/av/Pillow、模型文件、数据目录可写、磁盘空间、B站接口，失败项带修复建议。
+- **SRT / VTT 导出**：`--srt` / `bili_asr_run({ srt: true })` / 面板「导出字幕」，写到 `subtitles/`（每 cid 一份；多分P额外合并一份 `<BV>.srt`）。
+- **重建文档**：`--rebuild` / `bili_asr_rebuild` / `POST /api/bili-asr/rebuild` / 面板「重建文档」，只读 `transcripts/` + `graph.json` + `meta.json` 重出 `script.md`，不联网、不重跑 ASR（实测 0 秒）。
+- 每次运行写 `meta.json`（标题、分P、graph_version），供重建使用。
+
 ## [0.5.0] - 2026-11-12
 
 ### Added

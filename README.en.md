@@ -44,6 +44,8 @@ bili_asr_setup({ pipIndex: "https://pypi.org/simple", hfEndpoint: "https://huggi
 | `bili_asr_run({ video, pages?, noAsr? })` | Start a transcription job, returns `taskId` immediately |
 | `bili_asr_status({ id? })` | Progress + recent log lines; omit `id` to list recent jobs |
 | `bili_asr_cancel({ id })` | Cancel a job: drops queued ones, kills the node → python process tree for running ones |
+| `bili_asr_doctor()` | Environment self-check: Python, deps, model, data dir, disk, Bilibili API |
+| `bili_asr_rebuild({ id, srt? })` | Rebuild the document from existing transcripts/metadata only (no network) |
 | `bili_asr_delete({ id, files? })` | Delete a finished job record; `files: true` also removes `works/<BV>/` |
 | `bili_asr_doc({ id, offset?, limit? })` | Page through `script.md` (follow `next` while non-null) |
 | `bili_asr_setup({ pipIndex?, hfEndpoint? })` | One-time environment setup |
@@ -60,6 +62,9 @@ node bin/bili-asr.mjs BV1xxx --pages 1,3             # only the given parts
 node bin/bili-asr.mjs BV1xxx --out ./somewhere       # custom output directory
 node bin/bili-asr.mjs BV159WJ63EMK --frames          # one still per node (~25 KB each)
 node bin/bili-asr.mjs BV1xxx --frames --at 3         # capture at 3s (default 1s; dark frames are skipped automatically)
+node bin/bili-asr.mjs BV1xxx --srt                   # also export SRT / VTT into subtitles/
+node bin/bili-asr.mjs BV1xxx --rebuild               # rebuild the document from cached artifacts
+node bin/doctor.mjs                                  # environment self-check
 ```
 
 Output (default `$DSH_HOME/bili-asr/works/<BV>/`):

@@ -43,12 +43,12 @@
 - **do**：`<home>/cache/audio/<cid>.m4s`，按 cid 去重，works 里只留硬链接或不再复制。
 - **AC**：同视频第二次 `run` 不发 playurl 请求；缓存可单独清理。
 
-### 9. 导出 SRT / VTT
+### ~~9. 导出 SRT / VTT~~（已在 0.6.0 完成）
 - **why**：`script.md` 给人看，做字幕要标准格式。
 - **do**：`transcripts/*.json` 已有起止时间，加 `--srt` 产出；互动视频按节点分文件。
 - **AC**：导出的 SRT 能被播放器识别，时间轴与 JSON 一致。
 
-### 10. `bili_asr_doctor`：环境自检
+### ~~10. `bili_asr_doctor`：环境自检~~（已在 0.6.0 完成）
 - **why**：装不上时用户只能看日志；有人装到一半杀毒拦了 uv。
 - **do**：检查 venv/python 版本、faster-whisper 能否 import、模型文件 sha256、`dataDir` 可写、B站 API 可达。
 - **AC**：一条命令输出通过/失败清单，失败项带修复建议。

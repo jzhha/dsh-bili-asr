@@ -6,7 +6,7 @@
 //
 // 不裸 import @deepseek-ai/*：桌面版 profile 是 autoInstallPeers:false，
 // 拿不到 defineTool 就退回本地等价实现（与 dsh-bili-scroll 同一套策略）。
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -210,6 +210,32 @@ function cancelJob(id) {
   return { ok: true, id, state: 'canceled', killed: !!pid };
 }
 
+/** 环境自检：跑 bin/doctor.mjs，解析最后一段 JSON */
+function runDoctor(config) {
+  const { dataDir } = pathsOf(config);
+  const r = spawnSync(process.execPath, [join(PKG, 'bin', 'doctor.mjs')], {
+    encoding: 'utf8',
+    timeout: 120000,
+    env: childEnv(config, dataDir),
+  });
+  const out = (r.stdout || '').trim();
+  const start = out.indexOf('{');
+  if (start >= 0) {
+    try { return JSON.parse(out.slice(start)); } catch { /* 落到下面 */ }
+  }
+  return { ok: false, error: 'doctor 没有返回可解析的结果', raw: (r.stderr || out || '').slice(-400) };
+}
+
+function rebuildJob(config, id, opts = {}) {
+  const job = jobs.get(id);
+  if (!job) return { error: '没有这个任务: ' + id };
+  if (!job.bv) return { error: '这个任务没有 bv，无法重建' };
+  const { outDir } = pathsOf(config);
+  const args = [job.bv, '--rebuild', '--out', outDir];
+  if (opts.srt) args.push('--srt');
+  return startProc(config, 'rebuild', CLI, args, { bv: job.bv, doc: job.doc });
+}
+
 /** 删除任务记录；files=true 时连 works/<BV>/ 一起删。运行中的必须先取消。 */
 function deleteJob(id, opts = {}) {
   const job = jobs.get(id);
@@ -402,6 +428,7 @@ export function apply(ctx, config = {}) {
       noAsr: { type: 'boolean', description: '可选，只抓结构与音轨、不跑 ASR（互动视频调试用）', required: false },
       frames: { type: 'boolean', description: '可选，给每个分P/节点抓一帧截图（写进 frames/，会在文档里出图）', required: false },
       at: { type: 'integer', description: '可选，截图取第几秒（默认 1；会自动避开黑帧）', required: false },
+      srt: { type: 'boolean', description: '可选，额外导出 SRT/VTT 字幕到 subtitles/', required: false },
     },
     run: (args, cfg) => {
       const bv = bvOf(args.video);
@@ -411,6 +438,7 @@ export function apply(ctx, config = {}) {
       if (args.noAsr) extra.push('--no-asr');
       if (args.frames) extra.push('--frames');
       if (typeof args.at === 'number' || (typeof args.at === 'string' && args.at !== '')) extra.push('--at', String(args.at));
+      if (args.srt) extra.push('--srt');
       const { outDir: od } = pathsOf(cfg);
       return startProc(cfg, 'transcribe', CLI, [bv, '--out', od, ...extra], {
         bv, doc: join(od, bv, 'script.md'),
@@ -433,6 +461,23 @@ export function apply(ctx, config = {}) {
       files: { type: 'boolean', description: '可选，同时删除产物目录', required: false },
     },
     run: (args) => deleteJob(args.id, { files: !!args.files }),
+  });
+
+  tool({
+    name: 'bili_asr_doctor',
+    description: '环境自检：检查 Python、faster-whisper/av/Pillow 依赖、Whisper 模型文件、数据目录可写、磁盘空间与 B站接口可达。返回逐项 ok/detail/hint。',
+    parameters: {},
+    run: (_args, cfg) => runDoctor(cfg),
+  });
+
+  tool({
+    name: 'bili_asr_rebuild',
+    description: '只重建文档：用已有 transcripts / graph.json / meta.json 重新生成 script.md（不联网、不重新转写）。改过过滤规则或想刷新格式时用。',
+    parameters: {
+      id: { type: 'string', description: '任务 id', required: true },
+      srt: { type: 'boolean', description: '可选，同时导出 SRT/VTT', required: false },
+    },
+    run: (args, cfg) => rebuildJob(cfg, args.id, { srt: !!args.srt }),
   });
 
   tool({
@@ -492,6 +537,7 @@ export function apply(ctx, config = {}) {
             if (args.noAsr) extra.push('--no-asr');
             if (args.frames) extra.push('--frames');
             if (typeof args.at === 'number' || (typeof args.at === 'string' && args.at !== '')) extra.push('--at', String(args.at));
+            if (args.srt) extra.push('--srt');
             const { outDir: od } = pathsOf(config);
             sendJson(res, 200, { ok: true, ...startProc(config, 'transcribe', CLI, [bv, '--out', od, ...extra], {
               bv, doc: join(od, bv, 'script.md'),
@@ -505,6 +551,21 @@ export function apply(ctx, config = {}) {
             const id = args.id || url.searchParams.get('id') || '';
             if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
             const r = cancelJob(id);
+            if (r.error) { sendJson(res, 400, { ok: false, ...r }); return; }
+            sendJson(res, 200, { ok: true, ...r });
+            return;
+          }
+          if (sub === '/doctor' && (req.method === 'POST' || req.method === 'GET')) {
+            sendJson(res, 200, { ok: true, report: runDoctor(config) });
+            return;
+          }
+          if (sub === '/rebuild' && req.method === 'POST') {
+            const body = await readBody(req);
+            let args = {};
+            try { args = JSON.parse(body || '{}'); } catch { /* 空 body */ }
+            const id = args.id || url.searchParams.get('id') || '';
+            if (!id) { sendJson(res, 400, { ok: false, error: '缺少 id' }); return; }
+            const r = rebuildJob(config, id, { srt: !!args.srt });
             if (r.error) { sendJson(res, 400, { ok: false, ...r }); return; }
             sendJson(res, 200, { ok: true, ...r });
             return;
