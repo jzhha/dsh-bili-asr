@@ -85,6 +85,9 @@ tree.md         structure-only tree
 script.md       branch tree + lines (per-part transcript for regular videos)
 audio/          node audio tracks
 transcripts/    per-segment JSON with timestamps
+frames/         node stills (with --frames)
+subtitles/      SRT/VTT subtitles (with --srt)
+meta.json       title / parts / graph_version, used by --rebuild
 ```
 
 ## Configuration
