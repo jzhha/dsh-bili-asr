@@ -20,7 +20,7 @@ Most Bilibili videos have no subtitle track at all (`/x/player/v2` returns zero 
 dsh plugin --profile desktop add dsh-bili-asr
 
 # Without npm: install straight from the GitHub release
-dsh plugin --profile desktop add https://github.com/jzhha/dsh-bili-asr/releases/download/v0.3.0/dsh-bili-asr-0.3.0.tgz
+dsh plugin --profile desktop add https://github.com/jzhha/dsh-bili-asr/releases/download/v0.6.0/dsh-bili-asr-0.6.0.tgz
 ```
 
 After restarting DSH, call `bili_asr_setup` once (or open **Settings → Bili ASR** and click **Setup**). It will:
