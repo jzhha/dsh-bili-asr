@@ -53,6 +53,15 @@ bili_asr_setup({ pipIndex: "https://pypi.org/simple", hfEndpoint: "https://huggi
 
 Jobs are asynchronous — `run` returns at once; poll `status`.
 
+### Panel (Settings → "Bili ASR")
+
+| Area | What it does |
+|---|---|
+| Top row | Paste a BV/URL → transcribe; **Setup** (creates venv + downloads the 486 MB model); **Refresh** |
+| Options row | ☑ Node stills (pick the second; dark frames skipped), ☑ SRT export, Parts input (e.g. `1,3`) |
+| Toolbar | Copy path · Cancel (running/queued only) · Rebuild document (from cached artifacts, no network) · Doctor · Delete ▾ (record only / with files, two-step confirm) |
+| Right pane | Shows `script.md` for the selected job; on failure it shows the error code, cause and what to do |
+
 ### Command line
 
 ```bash
